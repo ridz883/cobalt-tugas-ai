@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cobalt.tugas — AI Form & Exam Auto-Solver</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-main: #070708;
+      --bg-card: #111113;
+      --bg-pill: #18181b;
+      --border-subtle: #232329;
+      --border-focus: #3f3f46;
+    }
+    body {
+      background-color: var(--bg-main);
+      color: #f4f4f5;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .cobalt-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+    }
+    .cobalt-input {
+      background-color: #0c0c0e;
+      border: 1px solid var(--border-subtle);
+      transition: all 0.15s ease;
+    }
+    .cobalt-input:focus-within, .cobalt-input:focus {
+      border-color: #e4e4e7;
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06);
+      outline: none;
+    }
+    .cobalt-pill {
+      background-color: var(--bg-pill);
+      border: 1px solid var(--border-subtle);
+      color: #a1a1aa;
+      transition: all 0.15s ease;
+      cursor: pointer;
+      user-select: none;
+    }
+    .cobalt-pill:hover {
+      background-color: #222227;
+      color: #f4f4f5;
+    }
+    .cobalt-pill.active {
+      background-color: #f4f4f5;
+      color: #09090b;
+      border-color: #f4f4f5;
+      font-weight: 600;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #070708; }
+    ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-white selection:text-black">
+
+  <!-- TOP NAVIGATION (COBALT MINIMALIST HEADER) -->
+  <header class="w-full max-w-5xl mx-auto px-4 pt-5 pb-2 flex items-center justify-between">
+    <div class="flex items-center gap-2.5">
+      <div class="w-7 h-7 rounded-lg bg-white text-black flex items-center justify-center font-bold text-sm tracking-tighter">
+        ⚡
+      </div>
+      <span class="mono font-semibold text-sm tracking-tight text-zinc-100">cobalt.tugas</span>
+      <span class="mono text-[11px] px-2 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400">
+        mistral-large-4-0
+      </span>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button onclick="openModal('profileModal')" class="cobalt-pill px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5">
+        <span>👤</span>
+        <span id="navProfileBadge">Profil Preset</span>
+      </button>
+      <button onclick="openModal('cookieModal')" class="cobalt-pill px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5">
+        <span>🍪</span>
+        <span class="hidden sm:inline">Cookie & HTML</span>
+      </button>
+      <button onclick="openModal('historyModal')" class="cobalt-pill px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5">
+        <span>📜</span>
+        <span id="navHistoryCount" class="mono">0</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN CENTERED WORKSPACE -->
+  <main class="flex-1 w-full max-w-4xl mx-auto px-4 py-8 flex flex-col items-center justify-center">
+
+    <!-- COBALT MASCOT / STATUS HEADER -->
+    <div class="text-center mb-6">
+      <div id="mascotStatus" class="mono text-xs text-zinc-500 mb-1.5 tracking-wide">
+        // tempel link tugas, pilih target nilai, biarkan AI bekerja
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-100">
+        mau beresin tugas apa hari ini?
+      </h1>
+    </div>
+
+    <!-- COBALT SIGNATURE URL BAR -->
+    <div class="w-full max-w-2xl">
+      <div class="cobalt-input rounded-2xl p-1.5 flex items-center gap-2 shadow-2xl">
+        <div class="pl-3 text-zinc-500 select-none mono text-sm">🔗</div>
+        <input
+          id="urlInput"
+          type="url"
+          placeholder="tempel link tugas di sini (Google Form, forms.gle, atau web kuis)..."
+          class="w-full bg-transparent text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none py-2.5"
+          onkeydown="if(event.key === 'Enter') handleScanForm()"
+        />
+        <button
+          onclick="pasteFromClipboard()"
+          title="Tempel dari Clipboard"
+          class="cobalt-pill px-3 py-2 rounded-xl text-xs font-medium shrink-0"
+        >
+          Tempel
+        </button>
+        <button
+          id="btnScan"
+          onclick="handleScanForm()"
+          class="bg-white hover:bg-zinc-200 text-black font-semibold px-4 py-2 rounded-xl text-xs transition shrink-0 flex items-center gap-1.5"
+        >
+          <span id="btnScanText">Scan</span>
+          <span>→</span>
+        </button>
+      </div>
+
+      <!-- COBALT PILL CONTROLS (SCORE, ESSAY STYLE, TIMER, AI MODEL) -->
+      <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
+        <!-- Target Nilai Group -->
+        <div class="cobalt-card rounded-xl p-1 flex items-center gap-1">
+          <span class="mono text-[11px] text-zinc-500 px-2">nilai:</span>
+          <button onclick="setTargetScore(80)" id="scorePill80" class="cobalt-pill px-2.5 py-1 rounded-lg text-xs mono">🎯 80</button>
+          <button onclick="setTargetScore(90)" id="scorePill90" class="cobalt-pill px-2.5 py-1 rounded-lg text-xs mono">⚡ 90</button>
+          <button onclick="setTargetScore(100)" id="scorePill100" class="cobalt-pill active px-2.5 py-1 rounded-lg text-xs mono">🔥 100</button>
+        </div>
+
+        <!-- Gaya Bahasa Esai -->
+        <div class="cobalt-card rounded-xl p-1 flex items-center gap-1">
+          <span class="mono text-[11px] text-zinc-500 px-2">esai:</span>
+          <select id="essayStyleSelect" class="bg-transparent text-xs text-zinc-200 font-medium px-2 py-1 focus:outline-none cursor-pointer">
+            <option value="santai" class="bg-zinc-900">🎒 Pelajar Santai</option>
+            <option value="formal" class="bg-zinc-900">📚 Buku Paket</option>
+            <option value="natural" class="bg-zinc-900">📱 Ketikan HP (kecil)</option>
+          </select>
+        </div>
+
+        <!-- Stealth Delay Timer -->
+        <div class="cobalt-card rounded-xl p-1 flex items-center gap-1">
+          <span class="mono text-[11px] text-zinc-500 px-2">jeda:</span>
+          <select id="delayTimerSelect" class="bg-transparent text-xs text-zinc-200 font-medium px-2 py-1 focus:outline-none cursor-pointer">
+            <option value="0" class="bg-zinc-900">⚡ Instan (0 dtk)</option>
+            <option value="30" class="bg-zinc-900">⏱️ 30 Detik</option>
+            <option value="60" class="bg-zinc-900">⏱️ 1 Menit</option>
+            <option value="180" class="bg-zinc-900">⏱️ 3 Menit</option>
+            <option value="300" class="bg-zinc-900">⏱️ 5 Menit</option>
+          </select>
+        </div>
+
+        <!-- Tombol Materi Tambahan -->
+        <button onclick="toggleContextBox()" class="cobalt-pill px-3 py-1.5 rounded-xl text-xs flex items-center gap-1">
+          <span>📝</span>
+          <span>+ Materi Guru</span>
+        </button>
+      </div>
+
+      <!-- COLLAPSIBLE EXTRA CONTEXT / CATATAN GURU -->
+      <div id="extraContextBox" class="hidden mt-3 cobalt-card rounded-2xl p-3">
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-xs font-medium text-zinc-400">📚 Catatan / Materi Referensi Guru (Opsional)</span>
+          <span class="mono text-[11px] text-zinc-500">AI akan mengutamakan materi ini</span>
+        </div>
+        <textarea
+          id="extraContextInput"
+          rows="3"
+          placeholder="Tempel rangkuman materi atau kisi-kisi dari guru di sini agar jawaban esai/pilihan ganda sesuai catatan sekolah..."
+          class="w-full cobalt-input rounded-xl p-2.5 text-xs text-zinc-200 placeholder-zinc-600"
+        ></textarea>
+      </div>
+    </div>
+
+    <!-- PROGRESSIVE DISCLOSURE: WORKSPACE HASIL SCAN & PREVIEW -->
+    <div id="workspaceContainer" class="hidden w-full mt-8 space-y-5">
+
+      <!-- 1. STATUS BANNER & FORM INFO -->
+      <div class="cobalt-card rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <div class="flex flex-wrap items-center gap-2 mb-1">
+            <span id="badgePlatform" class="mono text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              🟢 Google Form Publik
+            </span>
+            <span id="badgeQuestionCount" class="mono text-[11px] px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-300">
+              0 Soal
+            </span>
+            <span id="badgePageCount" class="mono text-[11px] px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-400">
+              1 Halaman
+            </span>
+          </div>
+          <h2 id="formTitleDisplay" class="text-base font-semibold text-zinc-100">Judul Form Tugas</h2>
+          <p id="formDescDisplay" class="text-xs text-zinc-400 line-clamp-1"></p>
+        </div>
+
+        <button
+          id="btnSolveAI"
+          onclick="handleSolveWithAI()"
+          class="bg-white hover:bg-zinc-200 text-black font-semibold px-5 py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-2 shrink-0 shadow-lg"
+        >
+          <span>✨ Jawab Semua dengan AI</span>
+        </button>
+      </div>
+
+      <!-- 2. DYNAMIC IDENTITY MAPPER (NAMA, KELAS, ABSEN, NISN) -->
+      <div class="cobalt-card rounded-2xl p-4">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-zinc-400">👤 Kolom Identitas Terdeteksi</h3>
+            <p class="text-[11px] text-zinc-500">Otomatis disesuaikan dengan kolom yang diminta pada URL tugas</p>
+          </div>
+          <button onclick="applyProfileToIdentityInputs()" class="cobalt-pill px-2.5 py-1 rounded-lg text-[11px]">
+            Isi dari Preset
+          </button>
+        </div>
+        <div id="identityFieldsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <!-- Diisi dinamis oleh JS -->
+        </div>
+      </div>
+
+      <!-- 3. SCORE MUTATOR SUMMARY BAR -->
+      <div id="scoreSummaryBar" class="hidden cobalt-card rounded-2xl p-4 border-l-4 border-l-emerald-500 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-semibold text-zinc-100">Kalkulasi Target Nilai:</span>
+            <span id="summaryScoreBadge" class="mono text-xs font-bold px-2 py-0.5 rounded bg-white text-black">100</span>
+          </div>
+          <p id="summaryScoreDesc" class="text-xs text-zinc-400 mt-0.5">
+            AI menjawab semua soal dengan benar.
+          </p>
+        </div>
+
+        <!-- Filter Tabs & Copy WA Key -->
+        <div class="flex flex-wrap items-center gap-1.5">
+          <button onclick="setQuestionFilter('all')" id="filterAll" class="cobalt-pill active px-2.5 py-1 rounded-lg text-xs mono">Semua</button>
+          <button onclick="setQuestionFilter('correct')" id="filterCorrect" class="cobalt-pill px-2.5 py-1 rounded-lg text-xs mono text-emerald-400">🟢 Benar</button>
+          <button onclick="setQuestionFilter('wrong')" id="filterWrong" class="cobalt-pill px-2.5 py-1 rounded-lg text-xs mono text-amber-400">🟡 Disalahkan</button>
+          <button onclick="copyWhatsAppKey()" class="cobalt-pill px-2.5 py-1 rounded-lg text-xs flex items-center gap-1 ml-1">
+            <span>📋</span>
+            <span>Salin Kunci WA</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 4. LIVE PREVIEW DAFTAR SOAL & MANUAL OVERRIDE -->
+      <div id="questionsListContainer" class="space-y-3">
+        <!-- Kartu soal dirender secara dinamis di sini -->
+      </div>
+
+      <!-- 5. STEALTH COUNTDOWN BAR (MUNCUL SAAT JEDA WAKTU AKTIF) -->
+      <div id="stealthCountdownBox" class="hidden cobalt-card rounded-2xl p-4 border border-amber-500/30 bg-amber-500/5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center mono font-bold text-sm">
+              ⏱️
+            </div>
+            <div>
+              <div class="text-xs font-semibold text-amber-300">Mode Stealth Aktif — Menunda Pengiriman...</div>
+              <div id="stealthTimerText" class="mono text-lg font-bold text-zinc-100">00:00</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="executeDirectSubmit(true)" class="bg-amber-400 hover:bg-amber-300 text-black font-semibold px-3 py-1.5 rounded-xl text-xs">
+              Kirim Sekarang
+            </button>
+            <button onclick="cancelStealthTimer()" class="cobalt-pill px-3 py-1.5 rounded-xl text-xs">
+              Batal
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. TRIPLE EXECUTION STICKY BAR -->
+      <div class="sticky bottom-4 z-20 cobalt-card rounded-2xl p-3 shadow-2xl border border-zinc-700/80 backdrop-blur-md bg-zinc-950/90 flex flex-col sm:flex-row items-center justify-between gap-2.5">
+        <div class="text-xs text-zinc-400 px-1">
+          Pilih metode eksekusi tugas:
+        </div>
+        <div class="w-full sm:w-auto flex flex-wrap items-center gap-2">
+          <button
+            onclick="handleStartSubmit()"
+            id="btnDirectSubmit"
+            class="flex-1 sm:flex-initial bg-emerald-500 hover:bg-emerald-400 text-black font-semibold px-4 py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5"
+          >
+            <span>🚀</span>
+            <span>Jalankan Auto-Submit</span>
+          </button>
+
+          <button
+            onclick="openMagicLink()"
+            id="btnMagicLink"
+            title="Membuka Google Form yang sudah tercentang semua di tab baru (Tembus Form Wajib Login)"
+            class="flex-1 sm:flex-initial cobalt-pill px-3.5 py-2.5 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5 text-zinc-200"
+          >
+            <span>🔗</span>
+            <span>Buka Magic Link (Auto-Centang)</span>
+          </button>
+
+          <button
+            onclick="copyChromeAutoFillScript()"
+            title="Salin script untuk ditempel di Console Chrome (Untuk Web CBT / Non-GForm)"
+            class="cobalt-pill px-3 py-2.5 rounded-xl text-xs font-medium flex items-center justify-center gap-1"
+          >
+            <span>🧩</span>
+            <span>Script Chrome</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- FOOTER MINIMALIS ALA COBALT -->
+  <footer class="w-full max-w-4xl mx-auto px-4 py-6 text-center text-xs text-zinc-600 mono">
+    cobalt.tugas // powered by xKiro mistralai/mistral-large-4-0 • serverless architecture
+  </footer>
+
+  <!-- ======================================================================= -->
+  <!-- MODAL 1: PROFIL PRESET (LOCALSTORAGE) -->
+  <!-- ======================================================================= -->
+  <div id="profileModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="cobalt-card rounded-2xl max-w-md w-full p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-semibold text-sm text-zinc-100">👤 Profil Identitas Otomatis</h3>
+        <button onclick="closeModal('profileModal')" class="text-zinc-500 hover:text-white text-sm">✕</button>
+      </div>
+      <p class="text-xs text-zinc-400">
+        Data ini disimpan di browser kamu dan akan otomatis mengisi kolom Nama, Kelas, Absen, dan NISN setiap kali kamu melakukan scan URL tugas.
+      </p>
+      <div class="space-y-2.5">
+        <div>
+          <label class="text-[11px] text-zinc-400 mono">Nama Lengkap</label>
+          <input id="presetNama" type="text" placeholder="Contoh: Ridho Ahmad S" class="w-full cobalt-input rounded-xl px-3 py-2 text-xs mt-1" />
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[11px] text-zinc-400 mono">Kelas / Jurusan</label>
+            <input id="presetKelas" type="text" placeholder="Contoh: XII TKJ 1" class="w-full cobalt-input rounded-xl px-3 py-2 text-xs mt-1" />
+          </div>
+          <div>
+            <label class="text-[11px] text-zinc-400 mono">No. Absen</label>
+            <input id="presetAbsen" type="text" placeholder="Contoh: 28" class="w-full cobalt-input rounded-xl px-3 py-2 text-xs mt-1" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[11px] text-zinc-400 mono">NISN / NIS</label>
+            <input id="presetNisn" type="text" placeholder="Opsional" class="w-full cobalt-input rounded-xl px-3 py-2 text-xs mt-1" />
+          </div>
+          <div>
+            <label class="text-[11px] text-zinc-400 mono">Email Sekolah</label>
+            <input id="presetEmail" type="email" placeholder="Opsional" class="w-full cobalt-input rounded-xl px-3 py-2 text-xs mt-1" />
+          </div>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeModal('profileModal')" class="cobalt-pill px-4 py-2 rounded-xl text-xs">Tutup</button>
+        <button onclick="saveProfilePreset()" class="bg-white text-black font-semibold px-4 py-2 rounded-xl text-xs">Simpan Preset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================= -->
+  <!-- MODAL 2: COOKIE VAULT & PASTE HTML SOURCE (UNTUK FORM PRIVATE) -->
+  <!-- ======================================================================= -->
+  <div id="cookieModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="cobalt-card rounded-2xl max-w-lg w-full p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-semibold text-sm text-zinc-100">🍪 Mode Form Private & Pengaturan AI</h3>
+        <button onclick="closeModal('cookieModal')" class="text-zinc-500 hover:text-white text-sm">✕</button>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label class="text-[11px] text-zinc-300 font-medium">Opsi 1: Tempel Kode HTML (view-source) Form Private</label>
+          <p class="text-[11px] text-zinc-500 mb-1">
+            Jika form mewajibkan login email sekolah di HP, buka `view-source:https://docs.google.com/...` di Chrome, salin semua isinya, lalu tempel di bawah ini:
+          </p>
+          <textarea id="rawHtmlInput" rows="3" placeholder="Tempel kode HTML halaman form di sini..." class="w-full cobalt-input rounded-xl p-2.5 text-xs mono"></textarea>
+          <button onclick="handleScanFromRawHtml()" class="mt-1.5 cobalt-pill px-3 py-1.5 rounded-xl text-xs text-emerald-400">
+            ⚡ Scan dari Kode HTML Ini
+          </button>
+        </div>
+
+        <hr class="border-zinc-800" />
+
+        <div>
+          <label class="text-[11px] text-zinc-300 font-medium">Opsi 2: Cookie Akun Google (Agar Server Tembus Login Otomatis)</label>
+          <input id="cookieInput" type="password" placeholder="SID=...; HSID=...; SSID=..." class="w-full cobalt-input rounded-xl px-3 py-2 text-xs mono mt-1" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[11px] text-zinc-400 mono">Model AI (xKiro)</label>
+            <input id="customAiModel" type="text" value="mistralai/mistral-large-4-0" class="w-full cobalt-input rounded-xl px-3 py-2 text-xs mono mt-1" />
+          </div>
+          <div>
+            <label class="text-[11px] text-zinc-400 mono">API Key Override (Opsional)</label>
+            <input id="customApiKey" type="password" placeholder="Default: sk-xt-f8c8..." class="w-full cobalt-input rounded-xl px-3 py-2 text-xs mono mt-1" />
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeModal('cookieModal')" class="cobalt-pill px-4 py-2 rounded-xl text-xs">Tutup</button>
+        <button onclick="saveAdvancedSettings()" class="bg-white text-black font-semibold px-4 py-2 rounded-xl text-xs">Simpan Pengaturan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================= -->
+  <!-- MODAL 3: RIWAYAT TUGAS & RECEIPT BUKTI SUBMIT -->
+  <!-- ======================================================================= -->
+  <div id="historyModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="cobalt-card rounded-2xl max-w-lg w-full p-5 space-y-4 max-h-[80vh] flex flex-col">
+      <div class="flex items-center justify-between">
+        <h3 class="font-semibold text-sm text-zinc-100">📜 Riwayat Tugas & Bukti Kirim</h3>
+        <button onclick="closeModal('historyModal')" class="text-zinc-500 hover:text-white text-sm">✕</button>
+      </div>
+      <div id="historyListContainer" class="flex-1 overflow-y-auto space-y-2.5 pr-1">
+        <!-- Diisi dinamis -->
+      </div>
+      <div class="flex justify-between items-center pt-2">
+        <button onclick="clearHistory()" class="text-xs text-red-400 hover:underline">Hapus Riwayat</button>
+        <button onclick="closeModal('historyModal')" class="cobalt-pill px-4 py-2 rounded-xl text-xs">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toastBox" class="fixed bottom-5 right-5 z-50 hidden cobalt-card border border-zinc-700 px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs">
+    <span id="toastIcon">✨</span>
+    <span id="toastMessage" class="text-zinc-100 font-medium">Notifikasi</span>
+  </div>
+
+  <!-- ======================================================================= -->
+  <!-- FRONTEND LOGIC & STATE MANAGEMENT -->
+  <!-- ======================================================================= -->
+  <script>
+    // State Global Aplikasi
+    let currentForm = null;          // Data hasil scan form
+    let solvedState = {};            // { [entryId]: { correctAnswer, selectedAnswer, isIntentionallyWrong, reason } }
+    let targetScore = 100;           // 80, 90, atau 100
+    let currentFilter = 'all';       // 'all' | 'correct' | 'wrong'
+    let stealthInterval = null;
+
+    // Inisialisasi saat halaman dimuat
+    window.addEventListener('DOMContentLoaded', () => {
+      loadProfilePreset();
+      loadAdvancedSettings();
+      renderHistoryList();
+    });
+
+    // Efek Suara Klik Halus ala Cobalt (Web Audio API)
+    function playClickSound(freq = 520) {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+        gain.gain.setValueAtTime(0.04, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.06);
+      } catch (_) {}
+    }
+
+    function showToast(msg, icon = '✨') {
+      const box = document.getElementById('toastBox');
+      document.getElementById('toastIcon').textContent = icon;
+      document.getElementById('toastMessage').textContent = msg;
+      box.classList.remove('hidden');
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => box.classList.add('hidden'), 3800);
+    }
+
+    function openModal(id) {
+      playClickSound(600);
+      document.getElementById(id).classList.remove('hidden');
+    }
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    function toggleContextBox() {
+      playClickSound();
+      document.getElementById('extraContextBox').classList.toggle('hidden');
+    }
+
+    async function pasteFromClipboard() {
+      playClickSound();
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          document.getElementById('urlInput').value = text.trim();
+          showToast('Link ditempel dari clipboard!', '📋');
+          handleScanForm();
+        }
+      } catch (e) {
+        showToast('Izinkan akses clipboard atau tempel manual (Ctrl+V)', '⚠️');
+      }
+    }
+
+    // Pengaturan Target Nilai (80, 90, 100)
+    function setTargetScore(score) {
+      playClickSound(score === 100 ? 700 : 500);
+      targetScore = score;
+      [80, 90, 100].forEach(s => {
+        const el = document.getElementById(`scorePill${s}`);
+        if (s === score) el.classList.add('active');
+        else el.classList.remove('active');
+      });
+
+      // Jika soal sudah dijawab AI, langsung hitung ulang mutasi skor secara instan!
+      if (currentForm && Object.keys(solvedState).length > 0) {
+        recalculateScoreMutations();
+        renderQuestionsList();
+        showToast(`Target nilai diatur ke ${score}!`, '🎯');
+      }
+    }
+
+    // =========================================================================
+    // TAHAP 1: SCAN FORM DARI URL ATAU RAW HTML
+    // =========================================================================
+    async function handleScanForm(rawHtmlOverride = null) {
+      const url = document.getElementById('urlInput').value.trim();
+      if (!url && !rawHtmlOverride) {
+        return showToast('Masukkan URL tugas terlebih dahulu!', '⚠️');
+      }
+
+      const btn = document.getElementById('btnScan');
+      const btnText = document.getElementById('btnScanText');
+      const mascot = document.getElementById('mascotStatus');
+
+      btn.disabled = true;
+      btnText.textContent = 'Scanning...';
+      mascot.textContent = '// sedang membedah struktur form & mendeteksi kolom...';
+
+      try {
+        const cookie = localStorage.getItem('cobalt_cookie') || '';
+        const res = await fetch('/api/scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, rawHtml: rawHtmlOverride, cookie })
+        });
+
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error);
+
+        currentForm = json.data;
+        solvedState = {};
+
+        // Tampilkan Workspace
+        document.getElementById('workspaceContainer').classList.remove('hidden');
+        document.getElementById('scoreSummaryBar').classList.add('hidden');
+        document.getElementById('formTitleDisplay').textContent = currentForm.formTitle;
+        document.getElementById('formDescDisplay').textContent = currentForm.formDesc || currentForm.viewUrl;
+        document.getElementById('badgePlatform').textContent =
+          currentForm.platform === 'google_form' ? '🟢 Google Form' : '🌐 Universal Web Form';
+        document.getElementById('badgeQuestionCount').textContent = `${currentForm.quizQuestions.length} Soal`;
+        document.getElementById('badgePageCount').textContent = `${currentForm.pageCount} Halaman`;
+
+        renderIdentityFields();
+        renderQuestionsList();
+
+        mascot.textContent = `// berhasil menemukan ${currentForm.quizQuestions.length} soal! klik "Jawab Semua dengan AI"`;
+        showToast(`Berhasil memindai ${currentForm.quizQuestions.length} soal!`, '🟢');
+      } catch (err) {
+        mascot.textContent = '// gagal memindai form — cek pesan error';
+        showToast(err.message, '🚨');
+        if (err.message.includes('PRIVATE_FORM')) {
+          openModal('cookieModal');
+        }
+      } finally {
+        btn.disabled = false;
+        btnText.textContent = 'Scan';
+      }
+    }
+
+    function handleScanFromRawHtml() {
+      const raw = document.getElementById('rawHtmlInput').value.trim();
+      if (!raw) return showToast('Tempel kode HTML terlebih dahulu!', '⚠️');
+      closeModal('cookieModal');
+      handleScanForm(raw);
+    }
+
+    // Render Kolom Identitas (Nama, Kelas, Absen, NISN)
+    function renderIdentityFields() {
+      const container = document.getElementById('identityFieldsContainer');
+      container.innerHTML = '';
+
+      if (!currentForm.identityFields || currentForm.identityFields.length === 0) {
+        container.innerHTML = `<div class="col-span-2 text-xs text-zinc-500 mono">Tidak ada kolom identitas khusus yang terdeteksi (semua kolom dimasukkan ke daftar soal).</div>`;
+        return;
+      }
+
+      const preset = getProfilePreset();
+
+      currentForm.identityFields.forEach(field => {
+        const defaultVal = preset[field.key] || '';
+        const wrapper = document.createElement('div');
+
+        if (field.options && field.options.length > 0) {
+          // Jika Kelas berupa Dropdown / Radio di Form aslinya
+          let optionsHtml = field.options.map(opt => {
+            const isSelected = defaultVal && opt.toLowerCase().includes(defaultVal.toLowerCase()) ? 'selected' : '';
+            return `<option value="${escapeHtml(opt)}" class="bg-zinc-900" ${isSelected}>${escapeHtml(opt)}</option>`;
+          }).join('');
+
+          wrapper.innerHTML = `
+            <label class="block text-[11px] text-zinc-400 mb-1">${escapeHtml(field.title)}</label>
+            <select data-identity-entry="${field.entryId}" class="w-full cobalt-input rounded-xl px-3 py-2 text-xs text-zinc-100">
+              ${optionsHtml}
+            </select>
+          `;
+        } else {
+          wrapper.innerHTML = `
+            <label class="block text-[11px] text-zinc-400 mb-1">${escapeHtml(field.title)}</label>
+            <input
+              type="text"
+              data-identity-entry="${field.entryId}"
+              data-identity-key="${field.key}"
+              value="${escapeHtml(defaultVal)}"
+              placeholder="Isi ${escapeHtml(field.title)}..."
+              class="w-full cobalt-input rounded-xl px-3 py-2 text-xs text-zinc-100"
+            />
+          `;
+        }
+
+        container.appendChild(wrapper);
+      });
+    }
+
+    // =========================================================================
+    // TAHAP 2: PROSES JAWABAN DENGAN AI (MISTRAL LARGE 4.0)
+    // =========================================================================
+    async function handleSolveWithAI() {
+      if (!currentForm || currentForm.quizQuestions.length === 0) {
+        return showToast('Tidak ada soal untuk dijawab!', '⚠️');
+      }
+
+      playClickSound(660);
+      const btn = document.getElementById('btnSolveAI');
+      const mascot = document.getElementById('mascotStatus');
+      btn.disabled = true;
+      btn.innerHTML = `<span>⏳ Mistral AI sedang menjawab ${currentForm.quizQuestions.length} soal...</span>`;
+      mascot.textContent = '// menghubungi api.xkiro.com (mistralai/mistral-large-4-0)...';
+
+      try {
+        const essayStyle = document.getElementById('essayStyleSelect').value;
+        const extraContext = document.getElementById('extraContextInput').value.trim();
+        const aiModel = localStorage.getItem('cobalt_ai_model') || 'mistralai/mistral-large-4-0';
+        const customApiKey = localStorage.getItem('cobalt_api_key') || '';
+
+        const res = await fetch('/api/solve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            questions: currentForm.quizQuestions,
+            essayStyle,
+            extraContext,
+            aiModel,
+            customApiKey
+          })
+        });
+
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error);
+
+        // Simpan jawaban 100% benar dari AI
+        solvedState = {};
+        for (const q of currentForm.quizQuestions) {
+          const item = json.solved[q.entryId] || { correctAnswer: q.options?.[0] || '-', reason: '' };
+          solvedState[q.entryId] = {
+            correctAnswer: item.correctAnswer,
+            selectedAnswer: item.correctAnswer,
+            isIntentionallyWrong: false,
+            reason: item.reason
+          };
+        }
+
+        // Terapkan mutasi skor sesuai pilihan 80 / 90 / 100
+        recalculateScoreMutations();
+        document.getElementById('scoreSummaryBar').classList.remove('hidden');
+        renderQuestionsList();
+
+        mascot.textContent = `// selesai! ${currentForm.quizQuestions.length} soal terjawab dengan target nilai ${targetScore}`;
+        showToast(`Semua soal berhasil dijawab AI (Target Nilai: ${targetScore})!`, '🔥');
+      } catch (err) {
+        mascot.textContent = '// terjadi kendala saat memproses jawaban AI';
+        showToast(err.message, '🚨');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<span>✨ Jawab Ulang dengan AI</span>`;
+      }
+    }
+
+    // Logika Mutasi Skor (Mengatur soal yang benar & sengaja disalahkan)
+    function recalculateScoreMutations() {
+      if (!currentForm) return;
+      const questions = currentForm.quizQuestions;
+      const total = questions.length;
+
+      // Reset semua ke jawaban benar terlebih dahulu
+      questions.forEach(q => {
+        if (solvedState[q.entryId]) {
+          solvedState[q.entryId].selectedAnswer = solvedState[q.entryId].correctAnswer;
+          solvedState[q.entryId].isIntentionallyWrong = false;
+        }
+      });
+
+      const targetCorrectCount = Math.round((targetScore / 100) * total);
+      let wrongNeeded = Math.max(0, total - targetCorrectCount);
+
+      if (wrongNeeded > 0) {
+        // Prioritaskan menyalahkan soal Pilihan Ganda yang punya >= 2 opsi
+        const mcCandidates = questions.filter(q => q.options && q.options.length > 1);
+        const shuffled = [...mcCandidates].sort(() => 0.5 - Math.random());
+
+        for (const q of shuffled) {
+          if (wrongNeeded <= 0) break;
+          const st = solvedState[q.entryId];
+          if (!st) continue;
+          const wrongOptions = q.options.filter(opt => opt !== st.correctAnswer);
+          if (wrongOptions.length > 0) {
+            st.selectedAnswer = wrongOptions[Math.floor(Math.random() * wrongOptions.length)];
+            st.isIntentionallyWrong = true;
+            wrongNeeded--;
+          }
+        }
+      }
+
+      updateScoreSummaryUI();
+    }
+
+    function updateScoreSummaryUI() {
+      const questions = currentForm.quizQuestions;
+      const total = questions.length;
+      let wrongCount = 0;
+      questions.forEach(q => {
+        if (solvedState[q.entryId]?.isIntentionallyWrong) wrongCount++;
+      });
+      const correctCount = total - wrongCount;
+
+      document.getElementById('summaryScoreBadge').textContent = `${targetScore}`;
+      document.getElementById('summaryScoreDesc').textContent =
+        wrongCount === 0
+          ? `Semua ${total} soal disetel ke jawaban BENAR (100%).`
+          : `${correctCount} soal dijawab BENAR, dan ${wrongCount} soal pilihan ganda sengaja DISALAHKAN agar nilai pas ${targetScore}.`;
+    }
+
+    // Fitur "Tukar Jatah Salah" (Memindahkan status salah dari nomor ini ke soal lain)
+    function swapWrongQuestion(entryId) {
+      playClickSound(580);
+      const currentSt = solvedState[entryId];
+      if (!currentSt || !currentSt.isIntentionallyWrong) return;
+
+      // Kembalikan soal ini menjadi benar
+      currentSt.selectedAnswer = currentSt.correctAnswer;
+      currentSt.isIntentionallyWrong = false;
+
+      // Cari soal PG lain yang saat ini masih benar untuk disalahkan sebagai gantinya
+      const otherCandidates = currentForm.quizQuestions.filter(
+        q => q.entryId !== entryId && q.options && q.options.length > 1 && !solvedState[q.entryId]?.isIntentionallyWrong
+      );
+
+      if (otherCandidates.length > 0) {
+        const pick = otherCandidates[Math.floor(Math.random() * otherCandidates.length)];
+        const pickSt = solvedState[pick.entryId];
+        const wrongOpts = pick.options.filter(o => o !== pickSt.correctAnswer);
+        if (wrongOpts.length > 0) {
+          pickSt.selectedAnswer = wrongOpts[0];
+          pickSt.isIntentionallyWrong = true;
+          showToast(`Jatah salah dipindahkan ke soal lain!`, '🔄');
+        }
+      }
+
+      updateScoreSummaryUI();
+      renderQuestionsList();
+    }
+
+    function setQuestionFilter(filter) {
+      playClickSound();
+      currentFilter = filter;
+      ['All', 'Correct', 'Wrong'].forEach(f => {
+        const btn = document.getElementById(`filter${f}`);
+        if (f.toLowerCase() === filter) btn.classList.add('active');
+        else btn.classList.remove('active');
+      });
+      renderQuestionsList();
+    }
+
+    // Render Daftar Kartu Soal & Live Override
+    function renderQuestionsList() {
+      const container = document.getElementById('questionsListContainer');
+      container.innerHTML = '';
+
+      if (!currentForm) return;
+
+      currentForm.quizQuestions.forEach((q, idx) => {
+        const st = solvedState[q.entryId];
+        const isSolved = Boolean(st);
+        const isWrong = st?.isIntentionallyWrong;
+
+        if (currentFilter === 'correct' && isWrong) return;
+        if (currentFilter === 'wrong' && !isWrong) return;
+
+        const card = document.createElement('div');
+        card.className = `cobalt-card rounded-2xl p-4 transition ${
+          isSolved
+            ? isWrong
+              ? 'border-amber-500/40 bg-amber-500/[0.03]'
+              : 'border-emerald-500/30'
+            : ''
+        }`;
+
+        // Header Kartu Soal
+        let statusBadge = `<span class="mono text-[11px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">Belum Dijawab</span>`;
+        if (isSolved) {
+          statusBadge = isWrong
+            ? `<div class="flex items-center gap-1.5">
+                 <span class="mono text-[11px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">🟡 Sengaja Disalahkan</span>
+                 <button onclick="swapWrongQuestion('${q.entryId}')" class="cobalt-pill px-2 py-0.5 rounded text-[11px] text-zinc-200" title="Pindahkan jatah salah ke nomor lain">🔄 Tukar</button>
+               </div>`
+            : `<span class="mono text-[11px] px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">🟢 Dijawab Benar</span>`;
+        }
+
+        // Pratinjau Gambar jika Soal Bergambar (Vision)
+        const imageHtml = q.imageUrl
+          ? `<div class="my-2.5">
+               <img src="${q.imageUrl}" alt="Gambar Soal" class="max-h-48 rounded-xl border border-zinc-800 object-contain bg-black p-1" />
+             </div>`
+          : '';
+
+        // Pilihan Ganda atau Input Esai
+        let bodyHtml = '';
+        if (q.options && q.options.length > 0) {
+          const optsHtml = q.options.map((opt, optIdx) => {
+            const letter = String.fromCharCode(65 + optIdx);
+            const isSelected = st && (Array.isArray(st.selectedAnswer) ? st.selectedAnswer.includes(opt) : st.selectedAnswer === opt);
+            const isOriginalCorrect = st && st.correctAnswer === opt;
+
+            let optionStyle = 'border-zinc-800 bg-zinc-900/50 text-zinc-300 hover:border-zinc-700';
+            if (isSelected && !isWrong) {
+              optionStyle = 'border-emerald-500 bg-emerald-500/10 text-emerald-200 font-medium';
+            } else if (isSelected && isWrong) {
+              optionStyle = 'border-amber-500 bg-amber-500/10 text-amber-200 font-medium';
+            }
+
+            return `
+              <div
+                onclick="manualSelectOption('${q.entryId}', ${ idx }, ${ optIdx })"
+                class="cursor-pointer rounded-xl p-2.5 border text-xs flex items-center justify-between gap-2 transition ${optionStyle}"
+              >
+                <div class="flex items-center gap-2.5">
+                  <span class="mono text-[11px] w-5 h-5 rounded-md bg-black/50 border border-zinc-700 flex items-center justify-center shrink-0">${letter}</span>
+                  <span>${escapeHtml(opt)}</span>
+                </div>
+                ${isWrong && isOriginalCorrect ? `<span class="mono text-[10px] text-emerald-400 shrink-0">✓ Kunci Asli</span>` : ''}
+              </div>
+            `;
+          }).join('');
+
+          bodyHtml = `<div class="grid grid-cols-1 gap-1.5 mt-3">${optsHtml}</div>`;
+        } else {
+          const val = st ? st.selectedAnswer : '';
+          bodyHtml = `
+            <div class="mt-3">
+              <textarea
+                rows="2"
+                oninput="manualUpdateEssay('${q.entryId}', this.value)"
+                placeholder="Jawaban isian/esai akan muncul di sini..."
+                class="w-full cobalt-input rounded-xl p-2.5 text-xs text-zinc-100"
+              >${escapeHtml(val)}</textarea>
+            </div>
+          `;
+        }
+
+        const reasonHtml = st && st.reason
+          ? `<div class="mt-2.5 text-[11px] text-zinc-400 bg-zinc-950/70 rounded-lg px-3 py-1.5 border border-zinc-800/80">
+               💡 <span class="text-zinc-300">${escapeHtml(st.reason)}</span>
+             </div>`
+          : '';
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between gap-2 mb-1.5">
+            <span class="mono text-xs font-semibold text-zinc-400">#${idx + 1} • <span class="text-[11px] text-zinc-600">${q.entryId}</span></span>
+            ${statusBadge}
+          </div>
+          <p class="text-xs sm:text-sm font-medium text-zinc-100 leading-relaxed">${escapeHtml(q.question)}</p>
+          ${imageHtml}
+          ${bodyHtml}
+          ${reasonHtml}
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    // Override Manual Saat User Mengeklik Opsi Pilihan Ganda
+    function manualSelectOption(entryId, qIdx, optIdx) {
+      playClickSound();
+      const q = currentForm.quizQuestions[qIdx];
+      const chosenOpt = q.options[optIdx];
+      if (!solvedState[entryId]) {
+        solvedState[entryId] = {
+          correctAnswer: chosenOpt,
+          selectedAnswer: chosenOpt,
+          isIntentionallyWrong: false,
+          reason: 'Diatur secara manual.'
+        };
+      } else {
+        solvedState[entryId].selectedAnswer = chosenOpt;
+        solvedState[entryId].isIntentionallyWrong = (chosenOpt !== solvedState[entryId].correctAnswer);
+      }
+      updateScoreSummaryUI();
+      renderQuestionsList();
+    }
+
+    function manualUpdateEssay(entryId, value) {
+      if (!solvedState[entryId]) {
+        solvedState[entryId] = { correctAnswer: value, selectedAnswer: value, isIntentionallyWrong: false, reason: '' };
+      } else {
+        solvedState[entryId].selectedAnswer = value;
+      }
+    }
+
+    // Kumpulkan Semua Payload (Identitas + Jawaban Soal)
+    function collectFinalPayload() {
+      const payload = {};
+
+      // 1. Ambil nilai dari input identitas
+      document.querySelectorAll('[data-identity-entry]').forEach(el => {
+        const entryId = el.getAttribute('data-identity-entry');
+        payload[entryId] = el.value.trim();
+      });
+
+      // 2. Ambil jawaban soal
+      if (currentForm) {
+        currentForm.quizQuestions.forEach(q => {
+          const st = solvedState[q.entryId];
+          if (st && st.selectedAnswer !== undefined) {
+            payload[q.entryId] = st.selectedAnswer;
+          }
+        });
+      }
+
+      return payload;
+    }
+
+    // =========================================================================
+    // TAHAP 3: TRIPLE EXECUTION MODE (DIRECT SUBMIT, MAGIC LINK, CHROME SCRIPT)
+    // =========================================================================
+    function handleStartSubmit() {
+      if (!currentForm) return;
+      const delaySec = parseInt(document.getElementById('delayTimerSelect').value, 10) || 0;
+
+      if (delaySec > 0) {
+        startStealthCountdown(delaySec);
+      } else {
+        executeDirectSubmit();
+      }
+    }
+
+    function startStealthCountdown(seconds) {
+      playClickSound();
+      let remaining = seconds;
+      const box = document.getElementById('stealthCountdownBox');
+      const timerText = document.getElementById('stealthTimerText');
+      box.classList.remove('hidden');
+
+      clearInterval(stealthInterval);
+      const updateDisplay = () => {
+        const m = String(Math.floor(remaining / 60)).padStart(2, '0');
+        const s = String(remaining % 60).padStart(2, '0');
+        timerText.textContent = `${m}:${s}`;
+      };
+      updateDisplay();
+
+      stealthInterval = setInterval(() => {
+        remaining--;
+        updateDisplay();
+        if (remaining <= 0) {
+          clearInterval(stealthInterval);
+          box.classList.add('hidden');
+          executeDirectSubmit(true);
+        }
+      }, 1000);
+    }
+
+    function cancelStealthTimer() {
+      clearInterval(stealthInterval);
+      document.getElementById('stealthCountdownBox').classList.add('hidden');
+      showToast('Timer pengiriman dibatalkan.', '⏹️');
+    }
+
+    // Mode 1: Direct Auto-Submit via Serverless Backend
+    async function executeDirectSubmit(fromTimer = false) {
+      if (fromTimer) cancelStealthTimer();
+      playClickSound(750);
+
+      const payload = collectFinalPayload();
+      const btn = document.getElementById('btnDirectSubmit');
+      btn.disabled = true;
+      btn.innerHTML = `<span>⏳ Mengirim ke Server...</span>`;
+
+      try {
+        const cookie = localStorage.getItem('cobalt_cookie') || '';
+        const res = await fetch('/api/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            platform: currentForm.platform,
+            submitUrl: currentForm.submitUrl,
+            viewUrl: currentForm.viewUrl,
+            method: currentForm.method || 'POST',
+            pageCount: currentForm.pageCount,
+            fbzx: currentForm.fbzx,
+            cookie,
+            payload
+          })
+        });
+
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error);
+
+        saveToHistory({
+          title: currentForm.formTitle,
+          url: currentForm.viewUrl,
+          score: targetScore,
+          confirmation: json.confirmationText,
+          editUrl: json.editResponseUrl,
+          date: new Date().toLocaleString('id-ID')
+        });
+
+        showToast(`Berhasil Terkirim! "${json.confirmationText}"`, '🎉');
+        openModal('historyModal');
+      } catch (err) {
+        showToast(err.message, '🚨');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<span>🚀 Jalankan Auto-Submit</span>`;
+      }
+    }
+
+    // Mode 2: Buka Magic Link Auto-Centang (?usp=pp_url)
+    function openMagicLink() {
+      if (!currentForm) return;
+      playClickSound(680);
+
+      const payload = collectFinalPayload();
+      const params = new URLSearchParams();
+      params.set('usp', 'pp_url');
+
+      for (const [entryId, val] of Object.entries(payload)) {
+        if (Array.isArray(val)) {
+          val.forEach(v => params.append(entryId, v));
+        } else if (val !== undefined && val !== '') {
+          params.append(entryId, val);
+        }
+      }
+
+      const magicUrl = `${currentForm.viewUrl}?${params.toString()}`;
+      window.open(magicUrl, '_blank');
+      showToast('Magic Link dibuka di tab baru! Semua jawaban sudah tercentang.', '🔗');
+    }
+
+    // Mode 3: Copy Chrome Console Auto-Filler Script (Untuk Web CBT / Non-GForm)
+    function copyChromeAutoFillScript() {
+      if (!currentForm) return;
+      playClickSound();
+      const payload = collectFinalPayload();
+
+      const scriptCode = `
+(function(){
+  const data = ${JSON.stringify(payload)};
+  let filled = 0;
+  for (const [key, val] of Object.entries(data)) {
+    const inputs = document.querySelectorAll(\`[name="\${key}"], [data-params*="\${key.replace('entry.','')}"]\`);
+    inputs.forEach(el => {
+      if (el.type === 'radio' || el.type === 'checkbox') {
+        if (el.value === val) { el.click(); filled++; }
+      } else {
+        el.value = val;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        filled++;
+      }
+    });
+    // Klik elemen teks opsi yang cocok di layar
+    document.querySelectorAll('[role="radio"], [role="checkbox"], label').forEach(el => {
+      if ((el.getAttribute('data-value') === val || el.innerText.trim() === val)) {
+        el.click(); filled++;
+      }
+    });
+  }
+  alert('⚡ cobalt.tugas: Berhasil mengisi ' + filled + ' kolom di halaman ini!');
+})();`.trim();
+
+      navigator.clipboard.writeText(scriptCode);
+      showToast('Script Auto-Fill Chrome disalin! Tempel di Console/Bookmark Chrome.', '🧩');
+    }
+
+    // Salin Kunci Jawaban ke Format WhatsApp
+    function copyWhatsAppKey() {
+      if (!currentForm) return;
+      playClickSound();
+      let lines = [`*⚡ KUNCI JAWABAN: ${currentForm.formTitle}*`, `Target Nilai: *${targetScore}*`, ''];
+
+      currentForm.quizQuestions.forEach((q, idx) => {
+        const st = solvedState[q.entryId];
+        const ans = st ? st.selectedAnswer : '-';
+        let letterPrefix = '';
+        if (q.options && q.options.length > 0 && st) {
+          const optIdx = q.options.indexOf(ans);
+          if (optIdx >= 0) letterPrefix = `${String.fromCharCode(65 + optIdx)}. `;
+        }
+        const flag = st?.isIntentionallyWrong ? ' _(Disalahkan)_' : '';
+        lines.push(`*${idx + 1}.* ${letterPrefix}${ans}${flag}`);
+      });
+
+      navigator.clipboard.writeText(lines.join('\n'));
+      showToast('Kunci jawaban format WhatsApp berhasil disalin!', '📋');
+    }
+
+    // =========================================================================
+    // MANAJEMEN PROFIL PRESET & RIWAYAT (LOCALSTORAGE)
+    // =========================================================================
+    function getProfilePreset() {
+      try {
+        return JSON.parse(localStorage.getItem('cobalt_profile') || '{}');
+      } catch (_) {
+        return {};
+      }
+    }
+
+    function loadProfilePreset() {
+      const p = getProfilePreset();
+      document.getElementById('presetNama').value = p.nama || '';
+      document.getElementById('presetKelas').value = p.kelas || '';
+      document.getElementById('presetAbsen').value = p.absen || '';
+      document.getElementById('presetNisn').value = p.nisn || '';
+      document.getElementById('presetEmail').value = p.email || '';
+
+      if (p.nama) {
+        document.getElementById('navProfileBadge').textContent = p.nama.split(' ')[0];
+      }
+    }
+
+    function saveProfilePreset() {
+      const profile = {
+        nama: document.getElementById('presetNama').value.trim(),
+        kelas: document.getElementById('presetKelas').value.trim(),
+        absen: document.getElementById('presetAbsen').value.trim(),
+        nisn: document.getElementById('presetNisn').value.trim(),
+        email: document.getElementById('presetEmail').value.trim()
+      };
+      localStorage.setItem('cobalt_profile', JSON.stringify(profile));
+      loadProfilePreset();
+      if (currentForm) renderIdentityFields();
+      closeModal('profileModal');
+      showToast('Profil identitas disimpan!', '👤');
+    }
+
+    function applyProfileToIdentityInputs() {
+      renderIdentityFields();
+      showToast('Identitas diisi otomatis dari Preset!', '⚡');
+    }
+
+    function loadAdvancedSettings() {
+      document.getElementById('cookieInput').value = localStorage.getItem('cobalt_cookie') || '';
+      document.getElementById('customAiModel').value = localStorage.getItem('cobalt_ai_model') || 'mistralai/mistral-large-4-0';
+      document.getElementById('customApiKey').value = localStorage.getItem('cobalt_api_key') || '';
+    }
+
+    function saveAdvancedSettings() {
+      localStorage.setItem('cobalt_cookie', document.getElementById('cookieInput').value.trim());
+      localStorage.setItem('cobalt_ai_model', document.getElementById('customAiModel').value.trim() || 'mistralai/mistral-large-4-0');
+      localStorage.setItem('cobalt_api_key', document.getElementById('customApiKey').value.trim());
+      closeModal('cookieModal');
+      showToast('Pengaturan Cookie & Model disimpan!', '🍪');
+    }
+
+    function saveToHistory(entry) {
+      const list = JSON.parse(localStorage.getItem('cobalt_history') || '[]');
+      list.unshift(entry);
+      localStorage.setItem('cobalt_history', JSON.stringify(list.slice(0, 30)));
+      renderHistoryList();
+    }
+
+    function renderHistoryList() {
+      const list = JSON.parse(localStorage.getItem('cobalt_history') || '[]');
+      document.getElementById('navHistoryCount').textContent = list.length;
+      const container = document.getElementById('historyListContainer');
+
+      if (list.length === 0) {
+        container.innerHTML = `<div class="text-xs text-zinc-500 text-center py-6 mono">Belum ada riwayat tugas yang dikirim.</div>`;
+        return;
+      }
+
+      container.innerHTML = list.map(item => `
+        <div class="cobalt-input rounded-xl p-3 space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-zinc-100">${escapeHtml(item.title)}</span>
+            <span class="mono text-[11px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">Nilai ${item.score}</span>
+          </div>
+          <p class="text-[11px] text-zinc-400">✓ ${escapeHtml(item.confirmation)}</p>
+          <div class="flex items-center justify-between pt-1 text-[10px] text-zinc-500 mono">
+            <span>${item.date}</span>
+            <div class="flex gap-2">
+              ${item.editUrl ? `<a href="${item.editUrl}" target="_blank" class="text-amber-400 hover:underline">✏️ Edit Jawaban</a>` : ''}
+              <a href="${item.url}" target="_blank" class="text-zinc-300 hover:underline">🔗 Buka Form</a>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function clearHistory() {
+      localStorage.removeItem('cobalt_history');
+      renderHistoryList();
+      showToast('Riwayat dihapus.', '🗑️');
+    }
+
+    function escapeHtml(str = '') {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>
