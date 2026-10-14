@@ -1,13 +1,5 @@
-import express from 'express';
 import * as cheerio from 'cheerio';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
-const app = express();
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Konfigurasi Default xKiro API & Model sesuai permintaan
 const DEFAULT_API_KEY = process.env.XKIRO_API_KEY || 'sk-xt-f8c8a9432ddccf472ad7210961813d6d62f1a28e98f4440b';
 const DEFAULT_MODEL = process.env.AI_MODEL || 'mistralai/mistral-large-4-0';
 const XKIRO_ENDPOINT = 'https://api.xkiro.com/v1/chat/completions';
@@ -15,11 +7,55 @@ const XKIRO_ENDPOINT = 'https://api.xkiro.com/v1/chat/completions';
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36';
 
 /**
- * Helper: Deteksi apakah pertanyaan adalah kolom identitas (Nama, Kelas, Absen, NISN, dll.)
+ * Helper: Ekstrak array JSON FB_PUBLIC_LOAD_DATA_ dengan penghitung kurung siku
+ * Aman untuk semua versi Google Form & shortlink forms.gle
+ */
+function extractFbPublicLoadData(html) {
+  const marker = 'FB_PUBLIC_LOAD_DATA_';
+  const markerIdx = html.indexOf(marker);
+  if (markerIdx === -1) return null;
+
+  const startBracket = html.indexOf('[', markerIdx);
+  if (startBracket === -1) return null;
+
+  let depth = 0;
+  let inString = false;
+  let escapeNext = false;
+
+  for (let i = startBracket; i < html.length; i++) {
+    const ch = html[i];
+
+    if (escapeNext) {
+      escapeNext = false;
+      continue;
+    }
+    if (ch === '\\' && inString) {
+      escapeNext = true;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (!inString) {
+      if (ch === '[') depth++;
+      else if (ch === ']') {
+        depth--;
+        if (depth === 0) {
+          const jsonStr = html.slice(startBracket, i + 1);
+          return JSON.parse(jsonStr);
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Helper: Deteksi apakah pertanyaan adalah kolom identitas (Nama, Kelas, Absen, NISN, Email, Token)
  */
 function classifyIdentityKey(title = '', options = []) {
   const t = title.toLowerCase().trim();
-  // Jika memiliki banyak opsi (> 20), kemungkinan kecil bukan kelas kecuali daftar absen, tetap kita cek kata kuncinya
   if (/\b(nama\s*lengkap|nama\s*siswa|nama\s*peserta|nama\s*anda|^nama$|full\s*name)\b/.test(t) && options.length === 0) {
     return 'nama';
   }
@@ -45,17 +81,20 @@ function classifyIdentityKey(title = '', options = []) {
  * Helper: Parse Google Form HTML (FB_PUBLIC_LOAD_DATA_)
  */
 function parseGoogleFormHtml(html, finalUrl) {
-  const match = html.match(/var\s+FB_PUBLIC_LOAD_DATA_\s*=\s*(\[\s*null,[\s\S]*?\]);\s*<\/script>/);
+  const rawData = extractFbPublicLoadData(html);
 
-  if (!match || !match[1]) {
-    const isLoginRedirect = html.includes('accounts.google.com/ServiceLogin') || finalUrl.includes('accounts.google.com');
+  if (!rawData) {
+    const isLoginRedirect =
+      html.includes('accounts.google.com/ServiceLogin') ||
+      html.includes('accounts.google.com/v3/signin') ||
+      finalUrl.includes('accounts.google.com');
+
     if (isLoginRedirect) {
-      throw new Error('PRIVATE_FORM: Form ini dikunci (Wajib Login Akun Google). Masukkan Cookie Google di menu [Cookie & Source] atau tempel kode HTML (view-source) form tersebut.');
+      throw new Error('PRIVATE_FORM: Form ini dikunci (Wajib Login Akun Google). Masukkan Cookie Google di menu [Cookie & HTML] atau tempel kode HTML (view-source) form tersebut.');
     }
-    throw new Error('Struktur Google Form tidak ditemukan. Pastikan link mengarah ke form tugas yang aktif.');
+    throw new Error('Data soal Google Form tidak ditemukan. Pastikan link mengarah ke Google Form yang aktif.');
   }
 
-  const rawData = JSON.parse(match[1]);
   const formTitle = rawData[1]?.[8] || rawData[3] || 'Google Form Tugas';
   const formDesc = rawData[1]?.[0] || '';
   const rawItems = rawData[1]?.[1] || [];
@@ -78,22 +117,24 @@ function parseGoogleFormHtml(html, finalUrl) {
     const description = (item[2] || '').trim();
     const type = item[3];
 
-    // Tipe 8 adalah Section Break (pindah halaman)
+    // Tipe 8 = Section Break (Pindah Halaman)
     if (type === 8) {
       pageCount++;
       continue;
     }
 
-    // Lewati item non-input (seperti teks header atau gambar dekoratif)
+    // Lewati item non-pertanyaan
     if (!item[4] || !Array.isArray(item[4]) || !item[4][0]) continue;
 
     const inputMeta = item[4][0];
     const entryId = `entry.${inputMeta[0]}`;
     const rawOptions = inputMeta[1] || [];
-    const options = rawOptions.map(opt => opt[0]).filter(v => v !== null && v !== undefined && String(v).trim() !== '');
+    const options = rawOptions
+      .map(opt => opt[0])
+      .filter(v => v !== null && v !== undefined && String(v).trim() !== '');
     const isRequired = Boolean(inputMeta[2]);
 
-    // Cek apakah soal memiliki lampiran gambar (Vision context)
+    // Cek lampiran gambar pada soal
     let imageUrl = null;
     if (item[6] && Array.isArray(item[6]) && item[6][0]) {
       imageUrl = `https://drive.google.com/thumbnail?id=${item[6][0]}&sz=w1000`;
@@ -117,7 +158,7 @@ function parseGoogleFormHtml(html, finalUrl) {
         entryId,
         question: title || 'Pertanyaan Tanpa Judul',
         description,
-        type, // 0: Short, 1: Paragraph, 2: Multiple Choice, 3: Dropdown, 4: Checkboxes
+        type,
         options,
         imageUrl,
         isRequired
@@ -155,7 +196,6 @@ function parseUniversalFormHtml(html, finalUrl) {
 
   const root = formEl.length ? formEl : $('body');
 
-  // Ekstrak input radio / checkbox grup, select, input text, dan textarea
   root.find('input, select, textarea').each((idx, el) => {
     const tag = el.tagName.toLowerCase();
     const typeAttr = ($(el).attr('type') || 'text').toLowerCase();
@@ -165,7 +205,6 @@ function parseUniversalFormHtml(html, finalUrl) {
     if (processedNames.has(name)) return;
     processedNames.add(name);
 
-    // Cari teks label/pertanyaan terdekat
     let labelText =
       $(`label[for="${$(el).attr('id')}"]`).text().trim() ||
       $(el).closest('.question, .form-group, .field, div, li').find('label, .title, p, h3, h4, strong').first().text().trim() ||
@@ -173,7 +212,7 @@ function parseUniversalFormHtml(html, finalUrl) {
       name;
 
     let options = [];
-    let qType = 0; // 0: text, 1: essay, 2: radio, 3: select, 4: checkbox
+    let qType = 0;
 
     if (tag === 'select') {
       qType = 3;
@@ -231,7 +270,7 @@ function parseUniversalFormHtml(html, finalUrl) {
 }
 
 /**
- * Helper: Panggil AI (xKiro API - mistralai/mistral-large-4-0) untuk menjawab soal 100% akurat
+ * Helper: Panggil AI (xKiro API - mistralai/mistral-large-4-0)
  */
 async function solveWithAI({ questions, essayStyle, extraContext, aiModel, customApiKey }) {
   const apiKey = (customApiKey || DEFAULT_API_KEY).trim();
@@ -258,9 +297,8 @@ Tugasmu adalah menjawab seluruh daftar pertanyaan yang diberikan dalam format JS
 
 ATURAN WAJIB:
 1. Untuk soal yang memiliki daftar "options" (Pilihan Ganda / Dropdown / Checkbox):
-   - Nilai pada "answer" WAJIB SAMA PERSIS 100% karakter demi karakter (identik huruf besar/kecil, spasi, dan tanda baca) dengan salah satu string di dalam "options".
+   - Nilai pada "answer" WAJIB SAMA PERSIS 100% karakter demi karakter dengan salah satu string di dalam "options".
    - JANGAN menambahkan huruf "A. " atau "B. " di depan jawaban kecuali memang tertulis demikian di dalam array "options".
-   - Jika bertipe Checkbox (type = 4) dan mengharuskan lebih dari 1 jawaban, kembalikan array string dari "options", atau 1 string opsi paling tepat.
 2. Untuk soal Isian Singkat / Esai (tanpa "options"):
    - ${styleInstruction}
 3. Sertakan alasan singkat ("reason") 1 kalimat kenapa jawaban tersebut benar.
@@ -299,8 +337,6 @@ ATURAN WAJIB:
 
   const data = await response.json();
   let rawContent = data.choices?.[0]?.message?.content || '{}';
-
-  // Bersihkan blok markdown ```json jika model menyertakannya
   rawContent = rawContent.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
 
   let parsed = {};
@@ -316,9 +352,8 @@ ATURAN WAJIB:
   }
 
   const answersMap = parsed.answers || parsed;
-
-  // Normalisasi & pastikan jawaban PG selalu cocok 100% dengan salah satu opsi asli
   const normalized = {};
+
   for (const q of questions) {
     const item = answersMap[q.entryId];
     let ans = item && typeof item === 'object' && 'answer' in item ? item.answer : item;
@@ -346,29 +381,51 @@ ATURAN WAJIB:
 }
 
 /**
- * Endpoint Utama API (/api/index.js)
+ * NATIVE VERCEL SERVERLESS HANDLER
  */
-app.post('/api/:action?', async (req, res) => {
-  const action = req.params.action || req.body.action;
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(200).json({
+      success: true,
+      message: 'cobalt.tugas Serverless API aktif! Gunakan method POST.'
+    });
+  }
 
   try {
+    const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+    const urlParts = (req.url || '').split('?')[0].split('/').filter(Boolean);
+    const urlAction = urlParts[urlParts.length - 1];
+    const action = body.action || (['scan', 'solve', 'submit'].includes(urlAction) ? urlAction : 'scan');
+
     // =========================================================================
     // 1. ACTION: SCAN FORM DARI URL ATAU RAW HTML
     // =========================================================================
     if (action === 'scan') {
-      const { url, rawHtml, cookie } = req.body;
-
+      const { url, rawHtml, cookie } = body;
       let html = rawHtml || '';
-      let finalUrl = url || 'https://docs.google.com/forms/d/e/unknown/viewform';
+      let finalUrl = url || '[https://docs.google.com/forms/d/e/unknown/viewform](https://docs.google.com/forms/d/e/unknown/viewform)';
 
       if (!html) {
         if (!url) throw new Error('URL tugas wajib diisi.');
-        const headers = { 'User-Agent': USER_AGENT };
+        const headers = {
+          'User-Agent': USER_AGENT,
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7'
+        };
         if (cookie && cookie.trim()) {
           headers['Cookie'] = cookie.trim();
         }
 
         const fetchRes = await fetch(url.trim(), {
+          method: 'GET',
           headers,
           redirect: 'follow'
         });
@@ -378,7 +435,8 @@ app.post('/api/:action?', async (req, res) => {
       }
 
       const isGoogleForm =
-        finalUrl.includes('docs.google.com/forms') ||
+        finalUrl.includes('[docs.google.com/forms](https://docs.google.com/forms)') ||
+        finalUrl.includes('forms.gle') ||
         html.includes('FB_PUBLIC_LOAD_DATA_') ||
         html.includes('freebirdFormviewerViewFormContent');
 
@@ -386,17 +444,17 @@ app.post('/api/:action?', async (req, res) => {
         ? parseGoogleFormHtml(html, finalUrl)
         : parseUniversalFormHtml(html, finalUrl);
 
-      return res.json({
+      return res.status(200).json({
         success: true,
         data: parsedForm
       });
     }
 
     // =========================================================================
-    // 2. ACTION: SOLVE SOAL DENGAN AI (MISTRAL LARGE 4.0)
+    // 2. ACTION: SOLVE SOAL DENGAN AI
     // =========================================================================
     if (action === 'solve') {
-      const { questions, essayStyle = 'santai', extraContext = '', aiModel, customApiKey } = req.body;
+      const { questions, essayStyle = 'santai', extraContext = '', aiModel, customApiKey } = body;
       if (!questions || !Array.isArray(questions) || questions.length === 0) {
         throw new Error('Tidak ada daftar soal untuk dijawab.');
       }
@@ -409,7 +467,7 @@ app.post('/api/:action?', async (req, res) => {
         customApiKey
       });
 
-      return res.json({
+      return res.status(200).json({
         success: true,
         modelUsed: aiModel || DEFAULT_MODEL,
         solved: solvedMap
@@ -429,7 +487,7 @@ app.post('/api/:action?', async (req, res) => {
         fbzx = '',
         cookie = '',
         payload = {}
-      } = req.body;
+      } = body;
 
       if (!submitUrl) throw new Error('Alamat pengiriman (submitUrl) tidak ditemukan.');
 
@@ -472,30 +530,27 @@ app.post('/api/:action?', async (req, res) => {
       });
 
       const responseHtml = await submitRes.text();
-
-      // Cek link "Edit tanggapan Anda" jika Google Form mengizinkan edit
       const editMatch = responseHtml.match(/href="([^"]*edit2=[^"]*)"/i);
       const editResponseUrl = editMatch ? editMatch[1].replace(/&amp;/g, '&') : null;
 
-      // Cek pesan konfirmasi di dalam HTML balasan Google Form
       const $ = cheerio.load(responseHtml);
       const confirmationText =
         $('.vHW8K, .freebirdFormviewerViewResponseConfirmationMessage').text().trim() ||
         'Tanggapan Anda telah berhasil direkam oleh server.';
 
       const isLoginBlocked =
-        responseHtml.includes('accounts.google.com/ServiceLogin') ||
+        responseHtml.includes('[accounts.google.com/ServiceLogin](https://accounts.google.com/ServiceLogin)') ||
         submitRes.url.includes('accounts.google.com');
 
       if (isLoginBlocked) {
-        throw new Error('Server form menolak pengiriman langsung karena membutuhkan sesi Login. Silakan klik tombol [Buka Magic Link] agar langsung tercentang di Chrome kamu!');
+        throw new Error('Form menolak pengiriman langsung karena butuh sesi Login. Silakan klik tombol [Buka Magic Link] agar langsung tercentang di Chrome kamu!');
       }
 
       if (!submitRes.ok && submitRes.status >= 400) {
-        throw new Error(`Form menolak kiriman (HTTP ${submitRes.status}). Pastikan semua kolom wajib sudah terisi atau gunakan tombol [Buka Magic Link].`);
+        throw new Error(`Form menolak kiriman (HTTP ${submitRes.status}). Gunakan tombol [Buka Magic Link] untuk mengirim langsung dari Chrome.`);
       }
 
-      return res.json({
+      return res.status(200).json({
         success: true,
         status: submitRes.status,
         confirmationText,
@@ -511,18 +566,4 @@ app.post('/api/:action?', async (req, res) => {
       error: error.message || 'Terjadi kesalahan pada server.'
     });
   }
-});
-
-// Untuk menjalankan di lokal (npm start)
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-app.use(express.static(path.join(__dirname, '../public')));
-
-if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
-    console.log(`⚡ cobalt.tugas berjalan di http://localhost:${PORT}`);
-  });
 }
-
-export default app;
