@@ -1,321 +1,782 @@
 <!DOCTYPE html>
-<html lang="id" class="dark">
+<html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>cobalt.tugas — AI Form & Exam Auto-Solver</title>
-  <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
-  <link rel="preconnect" href="[https://fonts.googleapis.com](https://fonts.googleapis.com)">
-  <link rel="preconnect" href="[https://fonts.gstatic.com](https://fonts.gstatic.com)" crossorigin>
-  <link href="[https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap](https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap)" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
+    /* =========================================================================
+       NATIVE COBALT.TOOLS CSS ENGINE (100% MANDIRI & ANTI-GAGAL LOAD)
+       ========================================================================= */
     :root {
       --bg-main: #070708;
-      --bg-card: #111113;
-      --bg-pill: #18181b;
-      --border-subtle: #232329;
-      --border-focus: #3f3f46;
+      --bg-card: #111114;
+      --bg-input: #0b0b0d;
+      --bg-pill: #18181c;
+      --bg-pill-hover: #242429;
+      --border: #24242b;
+      --border-light: #3f3f46;
+      --text-main: #f4f4f5;
+      --text-muted: #a1a1aa;
+      --text-dim: #71717a;
+      --emerald: #10b981;
+      --amber: #f59e0b;
+      --danger: #ef4444;
     }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
     body {
       background-color: var(--bg-main);
-      color: #f4f4f5;
-      font-family: 'Inter', sans-serif;
+      color: var(--text-main);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      line-height: 1.5;
       overflow-x: hidden;
     }
+
     .mono {
       font-family: 'JetBrains Mono', monospace;
     }
-    .cobalt-card {
-      background-color: var(--bg-card);
-      border: 1px solid var(--border-subtle);
+
+    .hidden {
+      display: none !important;
     }
-    .cobalt-input {
-      background-color: #0c0c0e;
-      border: 1px solid var(--border-subtle);
-      transition: all 0.15s ease;
+
+    /* Layout Containers */
+    .topbar {
+      width: 100%;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 18px 16px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
     }
-    .cobalt-input:focus-within, .cobalt-input:focus {
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-logo {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: #ffffff;
+      color: #000000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .brand-title {
+      font-weight: 600;
+      font-size: 14px;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #141418;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .main-wrap {
+      flex: 1;
+      width: 100%;
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 28px 16px 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Hero Header */
+    .hero-box {
+      text-align: center;
+      margin-bottom: 22px;
+    }
+
+    .mascot-status {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+
+    .hero-title {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: #ffffff;
+    }
+
+    /* Cobalt URL Bar */
+    .url-section {
+      width: 100%;
+      max-width: 680px;
+    }
+
+    .url-bar {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .url-bar:focus-within {
       border-color: #e4e4e7;
-      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06);
-      outline: none;
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
     }
-    .cobalt-pill {
-      background-color: var(--bg-pill);
-      border: 1px solid var(--border-subtle);
-      color: #a1a1aa;
-      transition: all 0.15s ease;
-      cursor: pointer;
+
+    .url-icon {
+      padding-left: 10px;
+      font-size: 14px;
       user-select: none;
     }
-    .cobalt-pill:hover {
-      background-color: #222227;
-      color: #f4f4f5;
+
+    .url-input {
+      flex: 1;
+      min-width: 0;
+      background: transparent;
+      border: none;
+      color: var(--text-main);
+      font-size: 13.5px;
+      padding: 10px 4px;
+      outline: none;
     }
+
+    .url-input::placeholder {
+      color: #52525b;
+    }
+
+    /* Buttons & Pills */
+    .cobalt-pill {
+      background: var(--bg-pill);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 7px 12px;
+      border-radius: 11px;
+      font-size: 12px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+      text-decoration: none;
+    }
+
+    .cobalt-pill:hover {
+      background: var(--bg-pill-hover);
+      color: #ffffff;
+    }
+
     .cobalt-pill.active {
-      background-color: #f4f4f5;
-      color: #09090b;
-      border-color: #f4f4f5;
+      background: #ffffff;
+      color: #000000;
+      border-color: #ffffff;
       font-weight: 600;
     }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #070708; }
-    ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+
+    .btn-white {
+      background: #ffffff;
+      color: #000000;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 11px;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: opacity 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .btn-white:hover {
+      opacity: 0.9;
+    }
+
+    .btn-white:disabled, .btn-emerald:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-emerald {
+      background: var(--emerald);
+      color: #042f2e;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 12px;
+      font-size: 12.5px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: opacity 0.15s ease;
+    }
+
+    /* Controls Bar under URL */
+    .controls-row {
+      margin-top: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .control-group {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .control-label {
+      font-size: 11px;
+      color: var(--text-dim);
+      padding: 0 6px;
+    }
+
+    .cobalt-select {
+      background: transparent;
+      color: var(--text-main);
+      border: none;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 5px 8px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .cobalt-select option {
+      background: #141418;
+      color: #ffffff;
+    }
+
+    /* Cards & Inputs */
+    .cobalt-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      width: 100%;
+    }
+
+    .cobalt-field {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      padding: 9px 12px;
+      color: var(--text-main);
+      font-size: 12.5px;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+
+    .cobalt-field:focus {
+      border-color: #a1a1aa;
+    }
+
+    /* Workspace Sections */
+    .workspace {
+      width: 100%;
+      margin-top: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .banner-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+
+    .badge {
+      font-size: 11px;
+      padding: 2px 9px;
+      border-radius: 999px;
+      background: #1c1c21;
+      color: #d4d4d8;
+      border: 1px solid var(--border);
+    }
+
+    .badge.green {
+      background: rgba(16, 185, 129, 0.12);
+      color: #34d399;
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+
+    .badge.amber {
+      background: rgba(245, 158, 11, 0.14);
+      color: #fbbf24;
+      border-color: rgba(245, 158, 11, 0.35);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    @media (min-width: 600px) {
+      .grid-2 {
+        grid-template-columns: 1fr 1fr;
+      }
+      .hero-title {
+        font-size: 28px;
+      }
+    }
+
+    /* Question Cards */
+    .q-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .q-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 15px;
+      transition: border-color 0.15s ease;
+    }
+
+    .q-card.solved-correct {
+      border-color: rgba(16, 185, 129, 0.35);
+    }
+
+    .q-card.solved-wrong {
+      border-color: rgba(245, 158, 11, 0.45);
+      background: rgba(245, 158, 11, 0.03);
+    }
+
+    .q-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .q-title {
+      font-size: 13.5px;
+      font-weight: 500;
+      color: #f4f4f5;
+      margin-bottom: 10px;
+      white-space: pre-line;
+    }
+
+    .opt-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .opt-item {
+      border: 1px solid var(--border);
+      background: #141418;
+      border-radius: 11px;
+      padding: 9px 11px;
+      font-size: 12.5px;
+      color: #d4d4d8;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+
+    .opt-item:hover {
+      border-color: var(--border-light);
+    }
+
+    .opt-item.selected-correct {
+      border-color: var(--emerald);
+      background: rgba(16, 185, 129, 0.12);
+      color: #ecfdf5;
+      font-weight: 500;
+    }
+
+    .opt-item.selected-wrong {
+      border-color: var(--amber);
+      background: rgba(245, 158, 11, 0.12);
+      color: #fffbeb;
+      font-weight: 500;
+    }
+
+    .opt-left {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .opt-letter {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      background: #09090b;
+      border: 1px solid var(--border-light);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+
+    .reason-box {
+      margin-top: 10px;
+      padding: 7px 10px;
+      border-radius: 9px;
+      background: #0b0b0e;
+      border: 1px solid #1f1f26;
+      font-size: 11.5px;
+      color: var(--text-muted);
+    }
+
+    /* Sticky Execution Bar */
+    .sticky-bar {
+      position: sticky;
+      bottom: 14px;
+      z-index: 25;
+      background: rgba(14, 14, 18, 0.94);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-light);
+      border-radius: 16px;
+      padding: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.8);
+    }
+
+    .action-btns {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+    }
+
+    @media (min-width: 600px) {
+      .action-btns {
+        width: auto;
+      }
+    }
+
+    /* Modals */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      background: rgba(0, 0, 0, 0.82);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: 18px;
+      width: 100%;
+      max-width: 460px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      max-height: 86vh;
+      overflow-y: auto;
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .close-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 16px;
+      cursor: pointer;
+      padding: 2px 6px;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      left: 20px;
+      max-width: 400px;
+      margin: 0 auto;
+      z-index: 80;
+      background: #16161b;
+      border: 1px solid var(--border-light);
+      border-radius: 14px;
+      padding: 12px 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12.5px;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.75);
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px 16px;
+      font-size: 11px;
+      color: #52525b;
+    }
   </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between selection:bg-white selection:text-black">
+<body>
 
-  <!-- TOP NAVIGATION (COBALT MINIMALIST HEADER) -->
-  <header class="w-full max-w-5xl mx-auto px-4 pt-5 pb-2 flex items-center justify-between">
-    <div class="flex items-center gap-2.5">
-      <div class="w-7 h-7 rounded-lg bg-white text-black flex items-center justify-center font-bold text-sm tracking-tighter">
-        ⚡
-      </div>
-      <span class="mono font-semibold text-sm tracking-tight text-zinc-100">cobalt.tugas</span>
-      <span class="mono text-[11px] px-2 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400">
-        mistral-large-4-0
-      </span>
+  <!-- TOP NAVIGATION -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-logo">⚡</div>
+      <span class="brand-title mono">cobalt.tugas</span>
+      <span class="brand-badge mono">mistral-large-4-0</span>
     </div>
 
-    <div class="flex items-center gap-2">
-      <button onclick="openModal('profileModal')" class="cobalt-pill px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5">
+    <div class="nav-actions">
+      <button onclick="openModal('profileModal')" class="cobalt-pill">
         <span>👤</span>
         <span id="navProfileBadge">Profil Preset</span>
       </button>
-      <button onclick="openModal('cookieModal')" class="cobalt-pill px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5">
+      <button onclick="openModal('cookieModal')" class="cobalt-pill">
         <span>🍪</span>
-        <span class="hidden sm:inline">Cookie & HTML</span>
+        <span>Cookie & HTML</span>
       </button>
-      <button onclick="openModal('historyModal')" class="cobalt-pill px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5">
+      <button onclick="openModal('historyModal')" class="cobalt-pill mono">
         <span>📜</span>
-        <span id="navHistoryCount" class="mono">0</span>
+        <span id="navHistoryCount">0</span>
       </button>
     </div>
   </header>
 
-  <!-- MAIN CENTERED WORKSPACE -->
-  <main class="flex-1 w-full max-w-4xl mx-auto px-4 py-8 flex flex-col items-center justify-center">
+  <!-- MAIN WORKSPACE -->
+  <main class="main-wrap">
 
-    <!-- COBALT MASCOT / STATUS HEADER -->
-    <div class="text-center mb-6">
-      <div id="mascotStatus" class="mono text-xs text-zinc-500 mb-1.5 tracking-wide">
+    <!-- HERO STATUS -->
+    <div class="hero-box">
+      <div id="mascotStatus" class="mascot-status mono">
         // tempel link tugas, pilih target nilai, biarkan AI bekerja
       </div>
-      <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-100">
-        mau beresin tugas apa hari ini?
-      </h1>
+      <h1 class="hero-title">mau beresin tugas apa hari ini?</h1>
     </div>
 
-    <!-- COBALT SIGNATURE URL BAR -->
-    <div class="w-full max-w-2xl">
-      <div class="cobalt-input rounded-2xl p-1.5 flex items-center gap-2 shadow-2xl">
-        <div class="pl-3 text-zinc-500 select-none mono text-sm">🔗</div>
+    <!-- COBALT URL INPUT BAR -->
+    <div class="url-section">
+      <div class="url-bar">
+        <span class="url-icon">🔗</span>
         <input
           id="urlInput"
           type="url"
+          class="url-input"
           placeholder="tempel link tugas di sini (Google Form, forms.gle, atau web kuis)..."
-          class="w-full bg-transparent text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none py-2.5"
           onkeydown="if(event.key === 'Enter') handleScanForm()"
         />
-        <button
-          onclick="pasteFromClipboard()"
-          title="Tempel dari Clipboard"
-          class="cobalt-pill px-3 py-2 rounded-xl text-xs font-medium shrink-0"
-        >
-          Tempel
-        </button>
-        <button
-          id="btnScan"
-          onclick="handleScanForm()"
-          class="bg-white hover:bg-zinc-200 text-black font-semibold px-4 py-2 rounded-xl text-xs transition shrink-0 flex items-center gap-1.5"
-        >
+        <button onclick="pasteFromClipboard()" class="cobalt-pill">Tempel</button>
+        <button id="btnScan" onclick="handleScanForm()" class="btn-white">
           <span id="btnScanText">Scan</span>
           <span>→</span>
         </button>
       </div>
 
-      <!-- COBALT PILL CONTROLS (SCORE, ESSAY STYLE, TIMER, EXTRA CONTEXT) -->
-      <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
-        <!-- Target Nilai Group -->
-        <div class="cobalt-card rounded-xl p-1 flex items-center gap-1">
-          <span class="mono text-[11px] text-zinc-500 px-2">nilai:</span>
-          <button onclick="setTargetScore(80)" id="scorePill80" class="cobalt-pill px-2.5 py-1 rounded-lg text-xs mono">🎯 80</button>
-          <button onclick="setTargetScore(90)" id="scorePill90" class="cobalt-pill px-2.5 py-1 rounded-lg text-xs mono">⚡ 90</button>
-          <button onclick="setTargetScore(100)" id="scorePill100" class="cobalt-pill active px-2.5 py-1 rounded-lg text-xs mono">🔥 100</button>
+      <!-- COBALT PILL CONTROLS -->
+      <div class="controls-row">
+        <div class="control-group">
+          <span class="control-label mono">nilai:</span>
+          <button onclick="setTargetScore(80)" id="scorePill80" class="cobalt-pill mono">🎯 80</button>
+          <button onclick="setTargetScore(90)" id="scorePill90" class="cobalt-pill mono">⚡ 90</button>
+          <button onclick="setTargetScore(100)" id="scorePill100" class="cobalt-pill active mono">🔥 100</button>
         </div>
 
-        <!-- Gaya Bahasa Esai -->
-        <div class="cobalt-card rounded-xl p-1 flex items-center gap-1">
-          <span class="mono text-[11px] text-zinc-500 px-2">esai:</span>
-          <select id="essayStyleSelect" class="bg-transparent text-xs text-zinc-200 font-medium px-2 py-1 focus:outline-none cursor-pointer">
-            <option value="santai" class="bg-zinc-900">🎒 Pelajar Santai</option>
-            <option value="formal" class="bg-zinc-900">📚 Buku Paket</option>
-            <option value="natural" class="bg-zinc-900">📱 Ketikan HP (kecil)</option>
+        <div class="control-group">
+          <span class="control-label mono">esai:</span>
+          <select id="essayStyleSelect" class="cobalt-select">
+            <option value="santai">🎒 Pelajar Santai</option>
+            <option value="formal">📚 Buku Paket</option>
+            <option value="natural">📱 Ketikan HP (kecil)</option>
           </select>
         </div>
 
-        <!-- Stealth Delay Timer -->
-        <div class="cobalt-card rounded-xl p-1 flex items-center gap-1">
-          <span class="mono text-[11px] text-zinc-500 px-2">jeda:</span>
-          <select id="delayTimerSelect" class="bg-transparent text-xs text-zinc-200 font-medium px-2 py-1 focus:outline-none cursor-pointer">
-            <option value="0" class="bg-zinc-900">⚡ Instan (0 dtk)</option>
-            <option value="30" class="bg-zinc-900">⏱️ 30 Detik</option>
-            <option value="60" class="bg-zinc-900">⏱️ 1 Menit</option>
-            <option value="180" class="bg-zinc-900">⏱️ 3 Menit</option>
-            <option value="300" class="bg-zinc-900">⏱️ 5 Menit</option>
+        <div class="control-group">
+          <span class="control-label mono">jeda:</span>
+          <select id="delayTimerSelect" class="cobalt-select">
+            <option value="0">⚡ Instan (0 dtk)</option>
+            <option value="30">⏱️ 30 Detik</option>
+            <option value="60">⏱️ 1 Menit</option>
+            <option value="180">⏱️ 3 Menit</option>
+            <option value="300">⏱️ 5 Menit</option>
           </select>
         </div>
 
-        <!-- Tombol Materi Tambahan -->
-        <button onclick="toggleContextBox()" class="cobalt-pill px-3 py-1.5 rounded-xl text-xs flex items-center gap-1">
+        <button onclick="toggleContextBox()" class="cobalt-pill">
           <span>📝</span>
           <span>+ Materi Guru</span>
         </button>
       </div>
 
-      <!-- COLLAPSIBLE EXTRA CONTEXT / CATATAN GURU -->
-      <div id="extraContextBox" class="hidden mt-3 cobalt-card rounded-2xl p-3">
-        <div class="flex items-center justify-between mb-1.5">
-          <span class="text-xs font-medium text-zinc-400">📚 Catatan / Materi Referensi Guru (Opsional)</span>
-          <span class="mono text-[11px] text-zinc-500">AI akan mengutamakan materi ini</span>
+      <!-- COLLAPSIBLE EXTRA CONTEXT -->
+      <div id="extraContextBox" class="cobalt-card hidden" style="margin-top: 12px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:12px; color:var(--text-muted);">
+          <span>📚 Catatan / Materi Referensi Guru (Opsional)</span>
+          <span class="mono" style="font-size:11px; color:var(--text-dim);">AI mengutamakan materi ini</span>
         </div>
         <textarea
           id="extraContextInput"
           rows="3"
-          placeholder="Tempel rangkuman materi atau kisi-kisi dari guru di sini agar jawaban esai/pilihan ganda sesuai catatan sekolah..."
-          class="w-full cobalt-input rounded-xl p-2.5 text-xs text-zinc-200 placeholder-zinc-600"
+          class="cobalt-field"
+          placeholder="Tempel rangkuman materi atau kisi-kisi dari guru di sini..."
         ></textarea>
       </div>
     </div>
 
-    <!-- PROGRESSIVE DISCLOSURE: WORKSPACE HASIL SCAN & PREVIEW -->
-    <div id="workspaceContainer" class="hidden w-full mt-8 space-y-5">
+    <!-- WORKSPACE HASIL SCAN (TERSEMBUNYI SAMPAI TOMBOL SCAN DIKLIK) -->
+    <div id="workspaceContainer" class="workspace hidden">
 
-      <!-- 1. STATUS BANNER & FORM INFO -->
-      <div class="cobalt-card rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <!-- 1. BANNER FORM INFO -->
+      <div class="cobalt-card banner-row">
         <div>
-          <div class="flex flex-wrap items-center gap-2 mb-1">
-            <span id="badgePlatform" class="mono text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              🟢 Google Form Publik
-            </span>
-            <span id="badgeQuestionCount" class="mono text-[11px] px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-300">
-              0 Soal
-            </span>
-            <span id="badgePageCount" class="mono text-[11px] px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-400">
-              1 Halaman
-            </span>
+          <div class="badge-row">
+            <span id="badgePlatform" class="badge green mono">🟢 Google Form</span>
+            <span id="badgeQuestionCount" class="badge mono">0 Soal</span>
+            <span id="badgePageCount" class="badge mono">1 Halaman</span>
           </div>
-          <h2 id="formTitleDisplay" class="text-base font-semibold text-zinc-100">Judul Form Tugas</h2>
-          <p id="formDescDisplay" class="text-xs text-zinc-400 line-clamp-1"></p>
+          <h2 id="formTitleDisplay" style="font-size:16px; font-weight:600;">Judul Form Tugas</h2>
+          <p id="formDescDisplay" style="font-size:12px; color:var(--text-muted); margin-top:2px;"></p>
         </div>
 
-        <button
-          id="btnSolveAI"
-          onclick="handleSolveWithAI()"
-          class="bg-white hover:bg-zinc-200 text-black font-semibold px-5 py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-2 shrink-0 shadow-lg"
-        >
+        <button id="btnSolveAI" onclick="handleSolveWithAI()" class="btn-white" style="padding:10px 18px;">
           <span>✨ Jawab Semua dengan AI</span>
         </button>
       </div>
 
-      <!-- 2. DYNAMIC IDENTITY MAPPER (NAMA, KELAS, ABSEN, NISN) -->
-      <div class="cobalt-card rounded-2xl p-4">
-        <div class="flex items-center justify-between mb-3">
+      <!-- 2. DYNAMIC IDENTITY MAPPER -->
+      <div class="cobalt-card">
+        <div class="banner-row" style="margin-bottom:12px;">
           <div>
-            <h3 class="text-xs font-semibold uppercase tracking-wider text-zinc-400">👤 Kolom Identitas Terdeteksi</h3>
-            <p class="text-[11px] text-zinc-500">Otomatis disesuaikan dengan kolom yang diminta pada URL tugas</p>
+            <div style="font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase;">👤 Kolom Identitas Terdeteksi</div>
+            <div style="font-size:11px; color:var(--text-dim);">Otomatis disesuaikan dengan kolom pada URL tugas</div>
           </div>
-          <button onclick="applyProfileToIdentityInputs()" class="cobalt-pill px-2.5 py-1 rounded-lg text-[11px]">
-            Isi dari Preset
-          </button>
+          <button onclick="applyProfileToIdentityInputs()" class="cobalt-pill">Isi dari Preset</button>
         </div>
-        <div id="identityFieldsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <!-- Diisi dinamis oleh JS -->
-        </div>
+        <div id="identityFieldsContainer" class="grid-2"></div>
       </div>
 
       <!-- 3. SCORE MUTATOR SUMMARY BAR -->
-      <div id="scoreSummaryBar" class="hidden cobalt-card rounded-2xl p-4 border-l-4 border-l-emerald-500 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div id="scoreSummaryBar" class="cobalt-card banner-row hidden" style="border-left: 4px solid var(--emerald);">
         <div>
-          <div class="flex items-center gap-2">
-            <span class="text-sm font-semibold text-zinc-100">Kalkulasi Target Nilai:</span>
-            <span id="summaryScoreBadge" class="mono text-xs font-bold px-2 py-0.5 rounded bg-white text-black">100</span>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:13.5px; font-weight:600;">Kalkulasi Target Nilai:</span>
+            <span id="summaryScoreBadge" class="badge green mono" style="font-weight:700;">100</span>
           </div>
-          <p id="summaryScoreDesc" class="text-xs text-zinc-400 mt-0.5">
+          <p id="summaryScoreDesc" style="font-size:12px; color:var(--text-muted); margin-top:3px;">
             AI menjawab semua soal dengan benar.
           </p>
         </div>
 
-        <!-- Filter Tabs & Copy WA Key -->
-        <div class="flex flex-wrap items-center gap-1.5">
-          <button onclick="setQuestionFilter('all')" id="filterAll" class="cobalt-pill active px-2.5 py-1 rounded-lg text-xs mono">Semua</button>
-          <button onclick="setQuestionFilter('correct')" id="filterCorrect" class="cobalt-pill px-2.5 py-1 rounded-lg text-xs mono text-emerald-400">🟢 Benar</button>
-          <button onclick="setQuestionFilter('wrong')" id="filterWrong" class="cobalt-pill px-2.5 py-1 rounded-lg text-xs mono text-amber-400">🟡 Disalahkan</button>
-          <button onclick="copyWhatsAppKey()" class="cobalt-pill px-2.5 py-1 rounded-lg text-xs flex items-center gap-1 ml-1">
-            <span>📋</span>
-            <span>Salin Kunci WA</span>
-          </button>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+          <button onclick="setQuestionFilter('all')" id="filterAll" class="cobalt-pill active mono">Semua</button>
+          <button onclick="setQuestionFilter('correct')" id="filterCorrect" class="cobalt-pill mono">🟢 Benar</button>
+          <button onclick="setQuestionFilter('wrong')" id="filterWrong" class="cobalt-pill mono">🟡 Disalahkan</button>
+          <button onclick="copyWhatsAppKey()" class="cobalt-pill">📋 Salin Kunci WA</button>
         </div>
       </div>
 
-      <!-- 4. LIVE PREVIEW DAFTAR SOAL & MANUAL OVERRIDE -->
-      <div id="questionsListContainer" class="space-y-3">
-        <!-- Kartu soal dirender secara dinamis di sini -->
-      </div>
+      <!-- 4. DAFTAR SOAL -->
+      <div id="questionsListContainer" class="q-list"></div>
 
-      <!-- 5. STEALTH COUNTDOWN BAR (MUNCUL SAAT JEDA WAKTU AKTIF) -->
-      <div id="stealthCountdownBox" class="hidden cobalt-card rounded-2xl p-4 border border-amber-500/30 bg-amber-500/5">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center mono font-bold text-sm">
-              ⏱️
-            </div>
-            <div>
-              <div class="text-xs font-semibold text-amber-300">Mode Stealth Aktif — Menunda Pengiriman...</div>
-              <div id="stealthTimerText" class="mono text-lg font-bold text-zinc-100">00:00</div>
-            </div>
-          </div>
-          <div class="flex items-center gap-2">
-            <button onclick="executeDirectSubmit(true)" class="bg-amber-400 hover:bg-amber-300 text-black font-semibold px-3 py-1.5 rounded-xl text-xs">
-              Kirim Sekarang
-            </button>
-            <button onclick="cancelStealthTimer()" class="cobalt-pill px-3 py-1.5 rounded-xl text-xs">
-              Batal
-            </button>
-          </div>
+      <!-- 5. STEALTH COUNTDOWN -->
+      <div id="stealthCountdownBox" class="cobalt-card banner-row hidden" style="border-color: var(--amber);">
+        <div>
+          <div style="font-size:12px; font-weight:600; color:#fbbf24;">⏱️ Mode Stealth Aktif — Menunda Pengiriman...</div>
+          <div id="stealthTimerText" class="mono" style="font-size:20px; font-weight:700; margin-top:2px;">00:00</div>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button onclick="executeDirectSubmit(true)" class="btn-white">Kirim Sekarang</button>
+          <button onclick="cancelStealthTimer()" class="cobalt-pill">Batal</button>
         </div>
       </div>
 
-      <!-- 6. TRIPLE EXECUTION STICKY BAR -->
-      <div class="sticky bottom-4 z-20 cobalt-card rounded-2xl p-3 shadow-2xl border border-zinc-700/80 backdrop-blur-md bg-zinc-950/90 flex flex-col sm:flex-row items-center justify-between gap-2.5">
-        <div class="text-xs text-zinc-400 px-1">
-          Pilih metode eksekusi tugas:
-        </div>
-        <div class="w-full sm:w-auto flex flex-wrap items-center gap-2">
-          <button
-            onclick="handleStartSubmit()"
-            id="btnDirectSubmit"
-            class="flex-1 sm:flex-initial bg-emerald-500 hover:bg-emerald-400 text-black font-semibold px-4 py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5"
-          >
+      <!-- 6. STICKY ACTION BAR -->
+      <div class="sticky-bar">
+        <span style="font-size:12px; color:var(--text-muted); padding-left:4px;">Pilih metode eksekusi tugas:</span>
+        <div class="action-btns">
+          <button id="btnDirectSubmit" onclick="handleStartSubmit()" class="btn-emerald" style="flex:1;">
             <span>🚀</span>
             <span>Jalankan Auto-Submit</span>
           </button>
-
-          <button
-            onclick="openMagicLink()"
-            id="btnMagicLink"
-            title="Membuka Google Form yang sudah tercentang semua di tab baru (Tembus Form Wajib Login)"
-            class="flex-1 sm:flex-initial cobalt-pill px-3.5 py-2.5 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5 text-zinc-200"
-          >
+          <button id="btnMagicLink" onclick="openMagicLink()" class="cobalt-pill" style="flex:1; padding:10px 14px; color:#fff;">
             <span>🔗</span>
             <span>Buka Magic Link (Auto-Centang)</span>
           </button>
-
-          <button
-            onclick="copyChromeAutoFillScript()"
-            title="Salin script untuk ditempel di Console Chrome (Untuk Web CBT / Non-GForm)"
-            class="cobalt-pill px-3 py-2.5 rounded-xl text-xs font-medium flex items-center justify-center gap-1"
-          >
+          <button onclick="copyChromeAutoFillScript()" class="cobalt-pill" style="padding:10px 12px;">
             <span>🧩</span>
             <span>Script Chrome</span>
           </button>
@@ -325,131 +786,128 @@
     </div>
   </main>
 
-  <!-- FOOTER MINIMALIS ALA COBALT -->
-  <footer class="w-full max-w-4xl mx-auto px-4 py-6 text-center text-xs text-zinc-600 mono">
-    cobalt.tugas // powered by xKiro mistralai/mistral-large-4-0 • serverless architecture
+  <footer>
+    <span class="mono">cobalt.tugas // powered by xKiro mistralai/mistral-large-4-0 • serverless architecture</span>
   </footer>
 
   <!-- ======================================================================= -->
-  <!-- MODAL 1: PROFIL PRESET (LOCALSTORAGE) -->
+  <!-- MODAL 1: PROFIL PRESET -->
   <!-- ======================================================================= -->
-  <div id="profileModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="cobalt-card rounded-2xl max-w-md w-full p-5 space-y-4">
-      <div class="flex items-center justify-between">
-        <h3 class="font-semibold text-sm text-zinc-100">👤 Profil Identitas Otomatis</h3>
-        <button onclick="closeModal('profileModal')" class="text-zinc-500 hover:text-white text-sm">✕</button>
+  <div id="profileModal" class="modal-backdrop hidden">
+    <div class="modal-box">
+      <div class="modal-head">
+        <strong style="font-size:14px;">👤 Profil Identitas Otomatis</strong>
+        <button onclick="closeModal('profileModal')" class="close-btn">✕</button>
       </div>
-      <p class="text-xs text-zinc-400">
-        Data ini disimpan di browser kamu dan akan otomatis mengisi kolom Nama, Kelas, Absen, dan NISN setiap kali kamu melakukan scan URL tugas.
+      <p style="font-size:12px; color:var(--text-muted);">
+        Data ini disimpan di browser kamu dan otomatis mengisi kolom Nama, Kelas, Absen, dan NISN setiap kali scan URL tugas.
       </p>
-      <div class="space-y-2.5">
+      <div style="display:flex; flex-direction:column; gap:10px;">
         <div>
-          <label class="text-[11px] text-zinc-400 mono">Nama Lengkap</label>
-          <input id="presetNama" type="text" placeholder="Contoh: Ridho Ahmad S" class="w-full cobalt-input rounded-xl px-3 py-2 text-xs mt-1" />
+          <label class="mono" style="font-size:11px; color:var(--text-muted);">Nama Lengkap</label>
+          <input id="presetNama" type="text" placeholder="Contoh: Ridho Ahmad S" class="cobalt-field" style="margin-top:4px;" />
         </div>
-        <div class="grid grid-cols-2 gap-2">
+        <div class="grid-2">
           <div>
-            <label class="text-[11px] text-zinc-400 mono">Kelas / Jurusan</label>
-            <input id="presetKelas" type="text" placeholder="Contoh: XII TKJ 1" class="w-full cobalt-input rounded-xl px-3 py-2 text-xs mt-1" />
+            <label class="mono" style="font-size:11px; color:var(--text-muted);">Kelas / Jurusan</label>
+            <input id="presetKelas" type="text" placeholder="Contoh: XII TKJ 1" class="cobalt-field" style="margin-top:4px;" />
           </div>
           <div>
-            <label class="text-[11px] text-zinc-400 mono">No. Absen</label>
-            <input id="presetAbsen" type="text" placeholder="Contoh: 28" class="w-full cobalt-input rounded-xl px-3 py-2 text-xs mt-1" />
+            <label class="mono" style="font-size:11px; color:var(--text-muted);">No. Absen</label>
+            <input id="presetAbsen" type="text" placeholder="Contoh: 28" class="cobalt-field" style="margin-top:4px;" />
           </div>
         </div>
-        <div class="grid grid-cols-2 gap-2">
+        <div class="grid-2">
           <div>
-            <label class="text-[11px] text-zinc-400 mono">NISN / NIS</label>
-            <input id="presetNisn" type="text" placeholder="Opsional" class="w-full cobalt-input rounded-xl px-3 py-2 text-xs mt-1" />
+            <label class="mono" style="font-size:11px; color:var(--text-muted);">NISN / NIS</label>
+            <input id="presetNisn" type="text" placeholder="Opsional" class="cobalt-field" style="margin-top:4px;" />
           </div>
           <div>
-            <label class="text-[11px] text-zinc-400 mono">Email Sekolah</label>
-            <input id="presetEmail" type="email" placeholder="Opsional" class="w-full cobalt-input rounded-xl px-3 py-2 text-xs mt-1" />
+            <label class="mono" style="font-size:11px; color:var(--text-muted);">Email Sekolah</label>
+            <input id="presetEmail" type="email" placeholder="Opsional" class="cobalt-field" style="margin-top:4px;" />
           </div>
         </div>
       </div>
-      <div class="flex justify-end gap-2 pt-2">
-        <button onclick="closeModal('profileModal')" class="cobalt-pill px-4 py-2 rounded-xl text-xs">Tutup</button>
-        <button onclick="saveProfilePreset()" class="bg-white text-black font-semibold px-4 py-2 rounded-xl text-xs">Simpan Preset</button>
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:4px;">
+        <button onclick="closeModal('profileModal')" class="cobalt-pill">Tutup</button>
+        <button onclick="saveProfilePreset()" class="btn-white">Simpan Preset</button>
       </div>
     </div>
   </div>
 
   <!-- ======================================================================= -->
-  <!-- MODAL 2: COOKIE VAULT & PASTE HTML SOURCE (UNTUK FORM PRIVATE) -->
+  <!-- MODAL 2: COOKIE & PASTE HTML SOURCE -->
   <!-- ======================================================================= -->
-  <div id="cookieModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="cobalt-card rounded-2xl max-w-lg w-full p-5 space-y-4">
-      <div class="flex items-center justify-between">
-        <h3 class="font-semibold text-sm text-zinc-100">🍪 Mode Form Private & Pengaturan AI</h3>
-        <button onclick="closeModal('cookieModal')" class="text-zinc-500 hover:text-white text-sm">✕</button>
+  <div id="cookieModal" class="modal-backdrop hidden">
+    <div class="modal-box">
+      <div class="modal-head">
+        <strong style="font-size:14px;">🍪 Mode Form Private & Pengaturan AI</strong>
+        <button onclick="closeModal('cookieModal')" class="close-btn">✕</button>
       </div>
 
-      <div class="space-y-3">
+      <div style="display:flex; flex-direction:column; gap:12px;">
         <div>
-          <label class="text-[11px] text-zinc-300 font-medium">Opsi 1: Tempel Kode HTML (view-source) Form Private</label>
-          <p class="text-[11px] text-zinc-500 mb-1">
-            Jika form mewajibkan login email sekolah di HP, buka `view-source:[https://docs.google.com/](https://docs.google.com/)...` di Chrome, salin semua isinya, lalu tempel di bawah ini:
+          <div style="font-size:12px; font-weight:600; margin-bottom:4px;">Opsi 1: Tempel Kode HTML (view-source) Form Private</div>
+          <p style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">
+            Jika form dikunci wajib login di HP, buka <span class="mono">view-source:https://docs.google.com/...</span> di Chrome, salin semua isinya, lalu tempel di bawah ini:
           </p>
-          <textarea id="rawHtmlInput" rows="3" placeholder="Tempel kode HTML halaman form di sini..." class="w-full cobalt-input rounded-xl p-2.5 text-xs mono"></textarea>
-          <button onclick="handleScanFromRawHtml()" class="mt-1.5 cobalt-pill px-3 py-1.5 rounded-xl text-xs text-emerald-400">
+          <textarea id="rawHtmlInput" rows="3" placeholder="Tempel kode HTML halaman form di sini..." class="cobalt-field mono"></textarea>
+          <button onclick="handleScanFromRawHtml()" class="cobalt-pill" style="margin-top:6px; color:#34d399;">
             ⚡ Scan dari Kode HTML Ini
           </button>
         </div>
 
-        <hr class="border-zinc-800" />
+        <hr style="border:none; border-top:1px solid var(--border);" />
 
         <div>
-          <label class="text-[11px] text-zinc-300 font-medium">Opsi 2: Cookie Akun Google (Agar Server Tembus Login Otomatis)</label>
-          <input id="cookieInput" type="password" placeholder="SID=...; HSID=...; SSID=..." class="w-full cobalt-input rounded-xl px-3 py-2 text-xs mono mt-1" />
+          <label style="font-size:12px; font-weight:600;">Opsi 2: Cookie Akun Google (Opsional)</label>
+          <input id="cookieInput" type="password" placeholder="SID=...; HSID=...; SSID=..." class="cobalt-field mono" style="margin-top:5px;" />
         </div>
 
-        <div class="grid grid-cols-2 gap-2">
+        <div class="grid-2">
           <div>
-            <label class="text-[11px] text-zinc-400 mono">Model AI (xKiro)</label>
-            <input id="customAiModel" type="text" value="mistralai/mistral-large-4-0" class="w-full cobalt-input rounded-xl px-3 py-2 text-xs mono mt-1" />
+            <label class="mono" style="font-size:11px; color:var(--text-muted);">Model AI (xKiro)</label>
+            <input id="customAiModel" type="text" value="mistralai/mistral-large-4-0" class="cobalt-field mono" style="margin-top:4px;" />
           </div>
           <div>
-            <label class="text-[11px] text-zinc-400 mono">API Key Override (Opsional)</label>
-            <input id="customApiKey" type="password" placeholder="Default: sk-xt-f8c8..." class="w-full cobalt-input rounded-xl px-3 py-2 text-xs mono mt-1" />
+            <label class="mono" style="font-size:11px; color:var(--text-muted);">API Key Override</label>
+            <input id="customApiKey" type="password" placeholder="Default aktif" class="cobalt-field mono" style="margin-top:4px;" />
           </div>
         </div>
       </div>
 
-      <div class="flex justify-end gap-2 pt-2">
-        <button onclick="closeModal('cookieModal')" class="cobalt-pill px-4 py-2 rounded-xl text-xs">Tutup</button>
-        <button onclick="saveAdvancedSettings()" class="bg-white text-black font-semibold px-4 py-2 rounded-xl text-xs">Simpan Pengaturan</button>
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:4px;">
+        <button onclick="closeModal('cookieModal')" class="cobalt-pill">Tutup</button>
+        <button onclick="saveAdvancedSettings()" class="btn-white">Simpan Pengaturan</button>
       </div>
     </div>
   </div>
 
   <!-- ======================================================================= -->
-  <!-- MODAL 3: RIWAYAT TUGAS & RECEIPT BUKTI SUBMIT -->
+  <!-- MODAL 3: RIWAYAT TUGAS -->
   <!-- ======================================================================= -->
-  <div id="historyModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="cobalt-card rounded-2xl max-w-lg w-full p-5 space-y-4 max-h-[80vh] flex flex-col">
-      <div class="flex items-center justify-between">
-        <h3 class="font-semibold text-sm text-zinc-100">📜 Riwayat Tugas & Bukti Kirim</h3>
-        <button onclick="closeModal('historyModal')" class="text-zinc-500 hover:text-white text-sm">✕</button>
+  <div id="historyModal" class="modal-backdrop hidden">
+    <div class="modal-box">
+      <div class="modal-head">
+        <strong style="font-size:14px;">📜 Riwayat Tugas & Bukti Kirim</strong>
+        <button onclick="closeModal('historyModal')" class="close-btn">✕</button>
       </div>
-      <div id="historyListContainer" class="flex-1 overflow-y-auto space-y-2.5 pr-1">
-        <!-- Diisi dinamis -->
-      </div>
-      <div class="flex justify-between items-center pt-2">
-        <button onclick="clearHistory()" class="text-xs text-red-400 hover:underline">Hapus Riwayat</button>
-        <button onclick="closeModal('historyModal')" class="cobalt-pill px-4 py-2 rounded-xl text-xs">Tutup</button>
+      <div id="historyListContainer" style="display:flex; flex-direction:column; gap:8px; max-height:300px; overflow-y:auto;"></div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+        <button onclick="clearHistory()" class="cobalt-pill" style="color:var(--danger);">Hapus Riwayat</button>
+        <button onclick="closeModal('historyModal')" class="cobalt-pill">Tutup</button>
       </div>
     </div>
   </div>
 
   <!-- TOAST NOTIFICATION -->
-  <div id="toastBox" class="fixed bottom-5 right-5 z-50 hidden cobalt-card border border-zinc-700 px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs">
+  <div id="toastBox" class="toast hidden">
     <span id="toastIcon">✨</span>
-    <span id="toastMessage" class="text-zinc-100 font-medium">Notifikasi</span>
+    <span id="toastMessage">Notifikasi</span>
   </div>
 
   <!-- ======================================================================= -->
-  <!-- FRONTEND LOGIC & STATE MANAGEMENT -->
+  <!-- JAVASCRIPT ENGINE -->
   <!-- ======================================================================= -->
   <script>
     let currentForm = null;
@@ -458,19 +916,19 @@
     let currentFilter = 'all';
     let stealthInterval = null;
 
-    window.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('DOMContentLoaded', function () {
       loadProfilePreset();
       loadAdvancedSettings();
       renderHistoryList();
     });
 
-    function playClickSound(freq = 520) {
+    function playClickSound(freq) {
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+        osc.frequency.setValueAtTime(freq || 520, ctx.currentTime);
         gain.gain.setValueAtTime(0.04, ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
         osc.connect(gain);
@@ -480,13 +938,15 @@
       } catch (_) {}
     }
 
-    function showToast(msg, icon = '✨') {
+    function showToast(msg, icon) {
       const box = document.getElementById('toastBox');
-      document.getElementById('toastIcon').textContent = icon;
+      document.getElementById('toastIcon').textContent = icon || '✨';
       document.getElementById('toastMessage').textContent = msg;
       box.classList.remove('hidden');
       clearTimeout(window._toastTimer);
-      window._toastTimer = setTimeout(() => box.classList.add('hidden'), 4000);
+      window._toastTimer = setTimeout(function () {
+        box.classList.add('hidden');
+      }, 4000);
     }
 
     function openModal(id) {
@@ -499,12 +959,12 @@
     }
 
     function toggleContextBox() {
-      playClickSound();
+      playClickSound(520);
       document.getElementById('extraContextBox').classList.toggle('hidden');
     }
 
     async function pasteFromClipboard() {
-      playClickSound();
+      playClickSound(520);
       try {
         const text = await navigator.clipboard.readText();
         if (text) {
@@ -513,15 +973,15 @@
           handleScanForm();
         }
       } catch (e) {
-        showToast('Izinkan akses clipboard atau tempel manual', '⚠️');
+        showToast('Tempel manual link pada kolom URL', '⚠️');
       }
     }
 
     function setTargetScore(score) {
       playClickSound(score === 100 ? 700 : 500);
       targetScore = score;
-      [80, 90, 100].forEach(s => {
-        const el = document.getElementById(`scorePill${s}`);
+      [80, 90, 100].forEach(function (s) {
+        const el = document.getElementById('scorePill' + s);
         if (s === score) el.classList.add('active');
         else el.classList.remove('active');
       });
@@ -529,18 +989,16 @@
       if (currentForm && Object.keys(solvedState).length > 0) {
         recalculateScoreMutations();
         renderQuestionsList();
-        showToast(`Target nilai diatur ke ${score}!`, '🎯');
+        showToast('Target nilai diatur ke ' + score + '!', '🎯');
       }
     }
 
-    /**
-     * Helper Pemanggil API Serverless Vercel (Anti Error Unexpected token 'T')
-     */
-    async function callBackendApi(action, payloadData = {}) {
+    async function callBackendApi(action, payloadData) {
+      const bodyObj = Object.assign({ action: action }, payloadData || {});
       const res = await fetch('/api', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, ...payloadData })
+        body: JSON.stringify(bodyObj)
       });
 
       const rawText = await res.text();
@@ -548,20 +1006,16 @@
       try {
         json = JSON.parse(rawText);
       } catch (e) {
-        throw new Error(`Endpoint /api tidak ditemukan (HTTP ${res.status}). Pastikan file index.js berada di dalam folder api/ di GitHub.`);
+        throw new Error('Server API Error (' + res.status + '). Pastikan api/index.js sudah ter-push di GitHub.');
       }
 
       if (!json.success) {
         throw new Error(json.error || 'Terjadi kesalahan pada server.');
       }
-
       return json;
     }
 
-    // =========================================================================
-    // TAHAP 1: SCAN FORM DARI URL ATAU RAW HTML
-    // =========================================================================
-    async function handleScanForm(rawHtmlOverride = null) {
+    async function handleScanForm(rawHtmlOverride) {
       const url = document.getElementById('urlInput').value.trim();
       if (!url && !rawHtmlOverride) {
         return showToast('Masukkan URL tugas terlebih dahulu!', '⚠️');
@@ -578,9 +1032,9 @@
       try {
         const cookie = localStorage.getItem('cobalt_cookie') || '';
         const json = await callBackendApi('scan', {
-          url,
-          rawHtml: rawHtmlOverride,
-          cookie
+          url: url,
+          rawHtml: rawHtmlOverride || null,
+          cookie: cookie
         });
 
         currentForm = json.data;
@@ -591,19 +1045,19 @@
         document.getElementById('formTitleDisplay').textContent = currentForm.formTitle;
         document.getElementById('formDescDisplay').textContent = currentForm.formDesc || currentForm.viewUrl;
         document.getElementById('badgePlatform').textContent =
-          currentForm.platform === 'google_form' ? '🟢 Google Form' : '🌐 Universal Web Form';
-        document.getElementById('badgeQuestionCount').textContent = `${currentForm.quizQuestions.length} Soal`;
-        document.getElementById('badgePageCount').textContent = `${currentForm.pageCount} Halaman`;
+          currentForm.platform === 'google_form' ? '🟢 Google Form' : '🌐 Universal Form';
+        document.getElementById('badgeQuestionCount').textContent = currentForm.quizQuestions.length + ' Soal';
+        document.getElementById('badgePageCount').textContent = currentForm.pageCount + ' Halaman';
 
         renderIdentityFields();
         renderQuestionsList();
 
-        mascot.textContent = `// berhasil menemukan ${currentForm.quizQuestions.length} soal! klik "Jawab Semua dengan AI"`;
-        showToast(`Berhasil memindai ${currentForm.quizQuestions.length} soal!`, '🟢');
+        mascot.textContent = '// berhasil menemukan ' + currentForm.quizQuestions.length + ' soal! klik "Jawab Semua dengan AI"';
+        showToast('Berhasil memindai ' + currentForm.quizQuestions.length + ' soal!', '🟢');
       } catch (err) {
-        mascot.textContent = '// gagal memindai form — cek pesan error';
+        mascot.textContent = '// gagal memindai form — cek pesan notifikasi';
         showToast(err.message, '🚨');
-        if (err.message.includes('PRIVATE_FORM')) {
+        if (err.message.indexOf('PRIVATE_FORM') !== -1) {
           openModal('cookieModal');
         }
       } finally {
@@ -624,49 +1078,35 @@
       container.innerHTML = '';
 
       if (!currentForm.identityFields || currentForm.identityFields.length === 0) {
-        container.innerHTML = `<div class="col-span-2 text-xs text-zinc-500 mono">Tidak ada kolom identitas khusus yang terdeteksi (semua kolom dimasukkan ke daftar soal).</div>`;
+        container.innerHTML = '<div class="mono" style="font-size:11.5px; color:var(--text-dim);">Tidak ada kolom identitas khusus (semua kolom masuk ke daftar soal).</div>';
         return;
       }
 
       const preset = getProfilePreset();
 
-      currentForm.identityFields.forEach(field => {
+      currentForm.identityFields.forEach(function (field) {
         const defaultVal = preset[field.key] || '';
         const wrapper = document.createElement('div');
 
         if (field.options && field.options.length > 0) {
-          let optionsHtml = field.options.map(opt => {
-            const isSelected = defaultVal && opt.toLowerCase().includes(defaultVal.toLowerCase()) ? 'selected' : '';
-            return `<option value="${escapeHtml(opt)}" class="bg-zinc-900" ${isSelected}>${escapeHtml(opt)}</option>`;
+          const optionsHtml = field.options.map(function (opt) {
+            const isSelected = defaultVal && opt.toLowerCase().indexOf(defaultVal.toLowerCase()) !== -1 ? 'selected' : '';
+            return '<option value="' + escapeHtml(opt) + '" ' + isSelected + '>' + escapeHtml(opt) + '</option>';
           }).join('');
 
-          wrapper.innerHTML = `
-            <label class="block text-[11px] text-zinc-400 mb-1">${escapeHtml(field.title)}</label>
-            <select data-identity-entry="${field.entryId}" class="w-full cobalt-input rounded-xl px-3 py-2 text-xs text-zinc-100">
-              ${optionsHtml}
-            </select>
-          `;
+          wrapper.innerHTML =
+            '<label style="display:block; font-size:11px; color:var(--text-muted); margin-bottom:4px;">' + escapeHtml(field.title) + '</label>' +
+            '<select data-identity-entry="' + field.entryId + '" class="cobalt-field">' + optionsHtml + '</select>';
         } else {
-          wrapper.innerHTML = `
-            <label class="block text-[11px] text-zinc-400 mb-1">${escapeHtml(field.title)}</label>
-            <input
-              type="text"
-              data-identity-entry="${field.entryId}"
-              data-identity-key="${field.key}"
-              value="${escapeHtml(defaultVal)}"
-              placeholder="Isi ${escapeHtml(field.title)}..."
-              class="w-full cobalt-input rounded-xl px-3 py-2 text-xs text-zinc-100"
-            />
-          `;
+          wrapper.innerHTML =
+            '<label style="display:block; font-size:11px; color:var(--text-muted); margin-bottom:4px;">' + escapeHtml(field.title) + '</label>' +
+            '<input type="text" data-identity-entry="' + field.entryId + '" value="' + escapeHtml(defaultVal) + '" placeholder="Isi ' + escapeHtml(field.title) + '..." class="cobalt-field" />';
         }
 
         container.appendChild(wrapper);
       });
     }
 
-    // =========================================================================
-    // TAHAP 2: PROSES JAWABAN DENGAN AI (MISTRAL LARGE 4.0)
-    // =========================================================================
     async function handleSolveWithAI() {
       if (!currentForm || currentForm.quizQuestions.length === 0) {
         return showToast('Tidak ada soal untuk dijawab!', '⚠️');
@@ -676,7 +1116,7 @@
       const btn = document.getElementById('btnSolveAI');
       const mascot = document.getElementById('mascotStatus');
       btn.disabled = true;
-      btn.innerHTML = `<span>⏳ Mistral AI sedang menjawab ${currentForm.quizQuestions.length} soal...</span>`;
+      btn.innerHTML = '<span>⏳ Mistral AI sedang menjawab ' + currentForm.quizQuestions.length + ' soal...</span>';
       mascot.textContent = '// menghubungi api.xkiro.com (mistralai/mistral-large-4-0)...';
 
       try {
@@ -687,35 +1127,35 @@
 
         const json = await callBackendApi('solve', {
           questions: currentForm.quizQuestions,
-          essayStyle,
-          extraContext,
-          aiModel,
-          customApiKey
+          essayStyle: essayStyle,
+          extraContext: extraContext,
+          aiModel: aiModel,
+          customApiKey: customApiKey
         });
 
         solvedState = {};
-        for (const q of currentForm.quizQuestions) {
-          const item = json.solved[q.entryId] || { correctAnswer: q.options?.[0] || '-', reason: '' };
+        currentForm.quizQuestions.forEach(function (q) {
+          const item = json.solved[q.entryId] || { correctAnswer: (q.options && q.options[0]) || '-', reason: '' };
           solvedState[q.entryId] = {
             correctAnswer: item.correctAnswer,
             selectedAnswer: item.correctAnswer,
             isIntentionallyWrong: false,
             reason: item.reason
           };
-        }
+        });
 
         recalculateScoreMutations();
         document.getElementById('scoreSummaryBar').classList.remove('hidden');
         renderQuestionsList();
 
-        mascot.textContent = `// selesai! ${currentForm.quizQuestions.length} soal terjawab dengan target nilai ${targetScore}`;
-        showToast(`Semua soal berhasil dijawab AI (Target Nilai: ${targetScore})!`, '🔥');
+        mascot.textContent = '// selesai! ' + currentForm.quizQuestions.length + ' soal terjawab dengan target nilai ' + targetScore;
+        showToast('Semua soal berhasil dijawab AI (Target Nilai: ' + targetScore + ')!', '🔥');
       } catch (err) {
         mascot.textContent = '// terjadi kendala saat memproses jawaban AI';
         showToast(err.message, '🚨');
       } finally {
         btn.disabled = false;
-        btn.innerHTML = `<span>✨ Jawab Ulang dengan AI</span>`;
+        btn.innerHTML = '<span>✨ Jawab Ulang dengan AI</span>';
       }
     }
 
@@ -724,7 +1164,7 @@
       const questions = currentForm.quizQuestions;
       const total = questions.length;
 
-      questions.forEach(q => {
+      questions.forEach(function (q) {
         if (solvedState[q.entryId]) {
           solvedState[q.entryId].selectedAnswer = solvedState[q.entryId].correctAnswer;
           solvedState[q.entryId].isIntentionallyWrong = false;
@@ -735,14 +1175,21 @@
       let wrongNeeded = Math.max(0, total - targetCorrectCount);
 
       if (wrongNeeded > 0) {
-        const mcCandidates = questions.filter(q => q.options && q.options.length > 1);
-        const shuffled = [...mcCandidates].sort(() => 0.5 - Math.random());
+        const mcCandidates = questions.filter(function (q) {
+          return q.options && q.options.length > 1;
+        });
+        const shuffled = mcCandidates.slice().sort(function () {
+          return 0.5 - Math.random();
+        });
 
-        for (const q of shuffled) {
+        for (let i = 0; i < shuffled.length; i++) {
           if (wrongNeeded <= 0) break;
+          const q = shuffled[i];
           const st = solvedState[q.entryId];
           if (!st) continue;
-          const wrongOptions = q.options.filter(opt => opt !== st.correctAnswer);
+          const wrongOptions = q.options.filter(function (opt) {
+            return opt !== st.correctAnswer;
+          });
           if (wrongOptions.length > 0) {
             st.selectedAnswer = wrongOptions[Math.floor(Math.random() * wrongOptions.length)];
             st.isIntentionallyWrong = true;
@@ -758,16 +1205,16 @@
       const questions = currentForm.quizQuestions;
       const total = questions.length;
       let wrongCount = 0;
-      questions.forEach(q => {
-        if (solvedState[q.entryId]?.isIntentionallyWrong) wrongCount++;
+      questions.forEach(function (q) {
+        if (solvedState[q.entryId] && solvedState[q.entryId].isIntentionallyWrong) wrongCount++;
       });
       const correctCount = total - wrongCount;
 
-      document.getElementById('summaryScoreBadge').textContent = `${targetScore}`;
+      document.getElementById('summaryScoreBadge').textContent = String(targetScore);
       document.getElementById('summaryScoreDesc').textContent =
         wrongCount === 0
-          ? `Semua ${total} soal disetel ke jawaban BENAR (100%).`
-          : `${correctCount} soal dijawab BENAR, dan ${wrongCount} soal pilihan ganda sengaja DISALAHKAN agar nilai pas ${targetScore}.`;
+          ? 'Semua ' + total + ' soal disetel ke jawaban BENAR (100%).'
+          : correctCount + ' soal dijawab BENAR, dan ' + wrongCount + ' soal sengaja DISALAHKAN agar nilai pas ' + targetScore + '.';
     }
 
     function swapWrongQuestion(entryId) {
@@ -778,18 +1225,20 @@
       currentSt.selectedAnswer = currentSt.correctAnswer;
       currentSt.isIntentionallyWrong = false;
 
-      const otherCandidates = currentForm.quizQuestions.filter(
-        q => q.entryId !== entryId && q.options && q.options.length > 1 && !solvedState[q.entryId]?.isIntentionallyWrong
-      );
+      const otherCandidates = currentForm.quizQuestions.filter(function (q) {
+        return q.entryId !== entryId && q.options && q.options.length > 1 && !(solvedState[q.entryId] && solvedState[q.entryId].isIntentionallyWrong);
+      });
 
       if (otherCandidates.length > 0) {
         const pick = otherCandidates[Math.floor(Math.random() * otherCandidates.length)];
         const pickSt = solvedState[pick.entryId];
-        const wrongOpts = pick.options.filter(o => o !== pickSt.correctAnswer);
+        const wrongOpts = pick.options.filter(function (o) {
+          return o !== pickSt.correctAnswer;
+        });
         if (wrongOpts.length > 0) {
           pickSt.selectedAnswer = wrongOpts[0];
           pickSt.isIntentionallyWrong = true;
-          showToast('Jatah salah dipindahkan ke soal nomor lain!', '🔄');
+          showToast('Jatah salah dipindahkan ke nomor lain!', '🔄');
         }
       }
 
@@ -798,10 +1247,10 @@
     }
 
     function setQuestionFilter(filter) {
-      playClickSound();
+      playClickSound(520);
       currentFilter = filter;
-      ['All', 'Correct', 'Wrong'].forEach(f => {
-        const btn = document.getElementById(`filter${f}`);
+      ['All', 'Correct', 'Wrong'].forEach(function (f) {
+        const btn = document.getElementById('filter' + f);
         if (f.toLowerCase() === filter) btn.classList.add('active');
         else btn.classList.remove('active');
       });
@@ -814,105 +1263,82 @@
 
       if (!currentForm) return;
 
-      currentForm.quizQuestions.forEach((q, idx) => {
+      currentForm.quizQuestions.forEach(function (q, idx) {
         const st = solvedState[q.entryId];
         const isSolved = Boolean(st);
-        const isWrong = st?.isIntentionallyWrong;
+        const isWrong = Boolean(st && st.isIntentionallyWrong);
 
         if (currentFilter === 'correct' && isWrong) return;
         if (currentFilter === 'wrong' && !isWrong) return;
 
         const card = document.createElement('div');
-        card.className = `cobalt-card rounded-2xl p-4 transition ${
-          isSolved
-            ? isWrong
-              ? 'border-amber-500/40 bg-amber-500/[0.03]'
-              : 'border-emerald-500/30'
-            : ''
-        }`;
+        card.className = 'q-card ' + (isSolved ? (isWrong ? 'solved-wrong' : 'solved-correct') : '');
 
-        let statusBadge = `<span class="mono text-[11px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">Belum Dijawab</span>`;
+        let statusBadge = '<span class="badge mono">Belum Dijawab</span>';
         if (isSolved) {
           statusBadge = isWrong
-            ? `<div class="flex items-center gap-1.5">
-                 <span class="mono text-[11px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">🟡 Sengaja Disalahkan</span>
-                 <button onclick="swapWrongQuestion('${q.entryId}')" class="cobalt-pill px-2 py-0.5 rounded text-[11px] text-zinc-200" title="Pindahkan jatah salah ke nomor lain">🔄 Tukar</button>
-               </div>`
-            : `<span class="mono text-[11px] px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">🟢 Dijawab Benar</span>`;
+            ? '<div style="display:flex; align-items:center; gap:6px;">' +
+                '<span class="badge amber mono">🟡 Sengaja Disalahkan</span>' +
+                '<button onclick="swapWrongQuestion(\'' + q.entryId + '\')" class="cobalt-pill" style="padding:3px 8px; font-size:11px;">🔄 Tukar</button>' +
+              '</div>'
+            : '<span class="badge green mono">🟢 Dijawab Benar</span>';
         }
 
         const imageHtml = q.imageUrl
-          ? `<div class="my-2.5">
-               <img src="${q.imageUrl}" alt="Gambar Soal" class="max-h-48 rounded-xl border border-zinc-800 object-contain bg-black p-1" />
-             </div>`
+          ? '<div style="margin:8px 0;"><img src="' + q.imageUrl + '" alt="Gambar Soal" style="max-height:190px; border-radius:10px; border:1px solid var(--border);" /></div>'
           : '';
 
         let bodyHtml = '';
         if (q.options && q.options.length > 0) {
-          const optsHtml = q.options.map((opt, optIdx) => {
+          const optsHtml = q.options.map(function (opt, optIdx) {
             const letter = String.fromCharCode(65 + optIdx);
-            const isSelected = st && (Array.isArray(st.selectedAnswer) ? st.selectedAnswer.includes(opt) : st.selectedAnswer === opt);
+            const isSelected = st && (Array.isArray(st.selectedAnswer) ? st.selectedAnswer.indexOf(opt) !== -1 : st.selectedAnswer === opt);
             const isOriginalCorrect = st && st.correctAnswer === opt;
 
-            let optionStyle = 'border-zinc-800 bg-zinc-900/50 text-zinc-300 hover:border-zinc-700';
-            if (isSelected && !isWrong) {
-              optionStyle = 'border-emerald-500 bg-emerald-500/10 text-emerald-200 font-medium';
-            } else if (isSelected && isWrong) {
-              optionStyle = 'border-amber-500 bg-amber-500/10 text-amber-200 font-medium';
-            }
+            let optClass = 'opt-item';
+            if (isSelected && !isWrong) optClass += ' selected-correct';
+            else if (isSelected && isWrong) optClass += ' selected-wrong';
 
-            return `
-              <div
-                onclick="manualSelectOption('${q.entryId}', ${idx}, ${optIdx})"
-                class="cursor-pointer rounded-xl p-2.5 border text-xs flex items-center justify-between gap-2 transition ${optionStyle}"
-              >
-                <div class="flex items-center gap-2.5">
-                  <span class="mono text-[11px] w-5 h-5 rounded-md bg-black/50 border border-zinc-700 flex items-center justify-center shrink-0">${letter}</span>
-                  <span>${escapeHtml(opt)}</span>
-                </div>
-                ${isWrong && isOriginalCorrect ? `<span class="mono text-[10px] text-emerald-400 shrink-0">✓ Kunci Asli</span>` : ''}
-              </div>
-            `;
+            return (
+              '<div onclick="manualSelectOption(\'' + q.entryId + '\', ' + idx + ', ' + optIdx + ')" class="' + optClass + '">' +
+                '<div class="opt-left">' +
+                  '<span class="opt-letter mono">' + letter + '</span>' +
+                  '<span>' + escapeHtml(opt) + '</span>' +
+                '</div>' +
+                (isWrong && isOriginalCorrect ? '<span class="mono" style="font-size:10.5px; color:#34d399;">✓ Kunci Asli</span>' : '') +
+              '</div>'
+            );
           }).join('');
 
-          bodyHtml = `<div class="grid grid-cols-1 gap-1.5 mt-3">${optsHtml}</div>`;
+          bodyHtml = '<div class="opt-list">' + optsHtml + '</div>';
         } else {
           const val = st ? st.selectedAnswer : '';
-          bodyHtml = `
-            <div class="mt-3">
-              <textarea
-                rows="2"
-                oninput="manualUpdateEssay('${q.entryId}', this.value)"
-                placeholder="Jawaban isian/esai akan muncul di sini..."
-                class="w-full cobalt-input rounded-xl p-2.5 text-xs text-zinc-100"
-              >${escapeHtml(val)}</textarea>
-            </div>
-          `;
+          bodyHtml =
+            '<textarea rows="2" oninput="manualUpdateEssay(\'' + q.entryId + '\', this.value)" placeholder="Jawaban isian/esai..." class="cobalt-field">' +
+              escapeHtml(val) +
+            '</textarea>';
         }
 
         const reasonHtml = st && st.reason
-          ? `<div class="mt-2.5 text-[11px] text-zinc-400 bg-zinc-950/70 rounded-lg px-3 py-1.5 border border-zinc-800/80">
-               💡 <span class="text-zinc-300">${escapeHtml(st.reason)}</span>
-             </div>`
+          ? '<div class="reason-box">💡 ' + escapeHtml(st.reason) + '</div>'
           : '';
 
-        card.innerHTML = `
-          <div class="flex items-center justify-between gap-2 mb-1.5">
-            <span class="mono text-xs font-semibold text-zinc-400">#${idx + 1} • <span class="text-[11px] text-zinc-600">${q.entryId}</span></span>
-            ${statusBadge}
-          </div>
-          <p class="text-xs sm:text-sm font-medium text-zinc-100 leading-relaxed">${escapeHtml(q.question)}</p>
-          ${imageHtml}
-          ${bodyHtml}
-          ${reasonHtml}
-        `;
+        card.innerHTML =
+          '<div class="q-header">' +
+            '<span class="mono" style="font-size:12px; color:var(--text-muted);">#' + (idx + 1) + ' • <span style="font-size:11px; color:var(--text-dim);">' + q.entryId + '</span></span>' +
+            statusBadge +
+          '</div>' +
+          '<div class="q-title">' + escapeHtml(q.question) + '</div>' +
+          imageHtml +
+          bodyHtml +
+          reasonHtml;
 
         container.appendChild(card);
       });
     }
 
     function manualSelectOption(entryId, qIdx, optIdx) {
-      playClickSound();
+      playClickSound(520);
       const q = currentForm.quizQuestions[qIdx];
       const chosenOpt = q.options[optIdx];
       if (!solvedState[entryId]) {
@@ -940,54 +1366,48 @@
 
     function collectFinalPayload() {
       const payload = {};
-
-      document.querySelectorAll('[data-identity-entry]').forEach(el => {
+      document.querySelectorAll('[data-identity-entry]').forEach(function (el) {
         const entryId = el.getAttribute('data-identity-entry');
         payload[entryId] = el.value.trim();
       });
 
       if (currentForm) {
-        currentForm.quizQuestions.forEach(q => {
+        currentForm.quizQuestions.forEach(function (q) {
           const st = solvedState[q.entryId];
           if (st && st.selectedAnswer !== undefined) {
             payload[q.entryId] = st.selectedAnswer;
           }
         });
       }
-
       return payload;
     }
 
-    // =========================================================================
-    // TAHAP 3: TRIPLE EXECUTION MODE
-    // =========================================================================
     function handleStartSubmit() {
       if (!currentForm) return;
       const delaySec = parseInt(document.getElementById('delayTimerSelect').value, 10) || 0;
-
       if (delaySec > 0) {
         startStealthCountdown(delaySec);
       } else {
-        executeDirectSubmit();
+        executeDirectSubmit(false);
       }
     }
 
     function startStealthCountdown(seconds) {
-      playClickSound();
+      playClickSound(520);
       let remaining = seconds;
       const box = document.getElementById('stealthCountdownBox');
       const timerText = document.getElementById('stealthTimerText');
       box.classList.remove('hidden');
 
       clearInterval(stealthInterval);
-      const updateDisplay = () => {
+      function updateDisplay() {
         const m = String(Math.floor(remaining / 60)).padStart(2, '0');
-        const s = String(remaining % 60)).padStart(2, '0');
-        timerText.textContent = `${m}:${s}`;
-      };
+        const s = String(remaining % 60).padStart(2, '0');
+        timerText.textContent = m + ':' + s;
+      }
       updateDisplay();
 
-      stealthInterval = setInterval(() => {
+      stealthInterval = setInterval(function () {
         remaining--;
         updateDisplay();
         if (remaining <= 0) {
@@ -1004,14 +1424,14 @@
       showToast('Timer pengiriman dibatalkan.', '⏹️');
     }
 
-    async function executeDirectSubmit(fromTimer = false) {
+    async function executeDirectSubmit(fromTimer) {
       if (fromTimer) cancelStealthTimer();
       playClickSound(750);
 
       const payload = collectFinalPayload();
       const btn = document.getElementById('btnDirectSubmit');
       btn.disabled = true;
-      btn.innerHTML = `<span>⏳ Mengirim ke Server...</span>`;
+      btn.innerHTML = '<span>⏳ Mengirim ke Server...</span>';
 
       try {
         const cookie = localStorage.getItem('cobalt_cookie') || '';
@@ -1022,8 +1442,8 @@
           method: currentForm.method || 'POST',
           pageCount: currentForm.pageCount,
           fbzx: currentForm.fbzx,
-          cookie,
-          payload
+          cookie: cookie,
+          payload: payload
         });
 
         saveToHistory({
@@ -1035,13 +1455,13 @@
           date: new Date().toLocaleString('id-ID')
         });
 
-        showToast(`Berhasil Terkirim! "${json.confirmationText}"`, '🎉');
+        showToast('Berhasil Terkirim! "' + json.confirmationText + '"', '🎉');
         openModal('historyModal');
       } catch (err) {
         showToast(err.message, '🚨');
       } finally {
         btn.disabled = false;
-        btn.innerHTML = `<span>🚀 Jalankan Auto-Submit</span>`;
+        btn.innerHTML = '<span>🚀 Jalankan Auto-Submit</span>';
       }
     }
 
@@ -1053,76 +1473,66 @@
       const params = new URLSearchParams();
       params.set('usp', 'pp_url');
 
-      for (const [entryId, val] of Object.entries(payload)) {
+      Object.keys(payload).forEach(function (entryId) {
+        const val = payload[entryId];
         if (Array.isArray(val)) {
-          val.forEach(v => params.append(entryId, v));
+          val.forEach(function (v) { params.append(entryId, v); });
         } else if (val !== undefined && val !== '') {
           params.append(entryId, val);
         }
-      }
+      });
 
-      const magicUrl = `${currentForm.viewUrl}?${params.toString()}`;
+      const magicUrl = currentForm.viewUrl + '?' + params.toString();
       window.open(magicUrl, '_blank');
-      showToast('Magic Link dibuka di tab baru! Semua jawaban sudah tercentang.', '🔗');
+      showToast('Magic Link dibuka! Semua jawaban sudah tercentang.', '🔗');
     }
 
     function copyChromeAutoFillScript() {
       if (!currentForm) return;
-      playClickSound();
+      playClickSound(520);
       const payload = collectFinalPayload();
 
-      const scriptCode = `
-(function(){
-  const data = ${JSON.stringify(payload)};
-  let filled = 0;
-  for (const [key, val] of Object.entries(data)) {
-    const inputs = document.querySelectorAll(\`[name="\${key}"], [data-params*="\${key.replace('entry.','')}"]\`);
-    inputs.forEach(el => {
-      if (el.type === 'radio' || el.type === 'checkbox') {
-        if (el.value === val) { el.click(); filled++; }
-      } else {
-        el.value = val;
-        el.dispatchEvent(new Event('input', { bubbles: true }));
-        filled++;
-      }
-    });
-    document.querySelectorAll('[role="radio"], [role="checkbox"], label').forEach(el => {
-      if ((el.getAttribute('data-value') === val || el.innerText.trim() === val)) {
-        el.click(); filled++;
-      }
-    });
-  }
-  alert('⚡ cobalt.tugas: Berhasil mengisi ' + filled + ' kolom di halaman ini!');
-})();`.trim();
+      const scriptCode =
+        '(function(){' +
+        'var data=' + JSON.stringify(payload) + ';var filled=0;' +
+        'Object.keys(data).forEach(function(key){' +
+          'var val=data[key];' +
+          'document.querySelectorAll("[name=\\""+key+"\\"]").forEach(function(el){' +
+            'if(el.type==="radio"||el.type==="checkbox"){if(el.value===val){el.click();filled++;}}' +
+            'else{el.value=val;el.dispatchEvent(new Event("input",{bubbles:true}));filled++;}' +
+          '});' +
+          'document.querySelectorAll("[role=\\"radio\\"],[role=\\"checkbox\\"],label").forEach(function(el){' +
+            'if(el.getAttribute("data-value")===val||el.innerText.trim()===val){el.click();filled++;}' +
+          '});' +
+        '});' +
+        'alert("⚡ cobalt.tugas: Berhasil mengisi "+filled+" kolom!");' +
+        '})();';
 
       navigator.clipboard.writeText(scriptCode);
-      showToast('Script Auto-Fill Chrome disalin! Tempel di Console/Bookmark Chrome.', '🧩');
+      showToast('Script Chrome disalin ke clipboard!', '🧩');
     }
 
     function copyWhatsAppKey() {
       if (!currentForm) return;
-      playClickSound();
-      let lines = [`*⚡ KUNCI JAWABAN: ${currentForm.formTitle}*`, `Target Nilai: *${targetScore}*`, ''];
+      playClickSound(520);
+      const lines = ['*⚡ KUNCI JAWABAN: ' + currentForm.formTitle + '*', 'Target Nilai: *' + targetScore + '*', ''];
 
-      currentForm.quizQuestions.forEach((q, idx) => {
+      currentForm.quizQuestions.forEach(function (q, idx) {
         const st = solvedState[q.entryId];
         const ans = st ? st.selectedAnswer : '-';
         let letterPrefix = '';
         if (q.options && q.options.length > 0 && st) {
           const optIdx = q.options.indexOf(ans);
-          if (optIdx >= 0) letterPrefix = `${String.fromCharCode(65 + optIdx)}. `;
+          if (optIdx >= 0) letterPrefix = String.fromCharCode(65 + optIdx) + '. ';
         }
-        const flag = st?.isIntentionallyWrong ? ' _(Disalahkan)_' : '';
-        lines.push(`*${idx + 1}.* ${letterPrefix}${ans}${flag}`);
+        const flag = st && st.isIntentionallyWrong ? ' _(Disalahkan)_' : '';
+        lines.push('*' + (idx + 1) + '.* ' + letterPrefix + ans + flag);
       });
 
       navigator.clipboard.writeText(lines.join('\n'));
-      showToast('Kunci jawaban format WhatsApp berhasil disalin!', '📋');
+      showToast('Kunci jawaban format WA disalin!', '📋');
     }
 
-    // =========================================================================
-    // MANAJEMEN PROFIL PRESET & RIWAYAT (LOCALSTORAGE)
-    // =========================================================================
     function getProfilePreset() {
       try {
         return JSON.parse(localStorage.getItem('cobalt_profile') || '{}');
@@ -1161,7 +1571,7 @@
 
     function applyProfileToIdentityInputs() {
       renderIdentityFields();
-      showToast('Identitas diisi otomatis dari Preset!', '⚡');
+      showToast('Identitas diisi dari Preset!', '⚡');
     }
 
     function loadAdvancedSettings() {
@@ -1175,7 +1585,7 @@
       localStorage.setItem('cobalt_ai_model', document.getElementById('customAiModel').value.trim() || 'mistralai/mistral-large-4-0');
       localStorage.setItem('cobalt_api_key', document.getElementById('customApiKey').value.trim());
       closeModal('cookieModal');
-      showToast('Pengaturan Cookie & Model disimpan!', '🍪');
+      showToast('Pengaturan disimpan!', '🍪');
     }
 
     function saveToHistory(entry) {
@@ -1187,30 +1597,29 @@
 
     function renderHistoryList() {
       const list = JSON.parse(localStorage.getItem('cobalt_history') || '[]');
-      document.getElementById('navHistoryCount').textContent = list.length;
+      document.getElementById('navHistoryCount').textContent = String(list.length);
       const container = document.getElementById('historyListContainer');
 
       if (list.length === 0) {
-        container.innerHTML = `<div class="text-xs text-zinc-500 text-center py-6 mono">Belum ada riwayat tugas yang dikirim.</div>`;
+        container.innerHTML = '<div class="mono" style="font-size:12px; color:var(--text-dim); text-align:center; padding:20px 0;">Belum ada riwayat tugas yang dikirim.</div>';
         return;
       }
 
-      container.innerHTML = list.map(item => `
-        <div class="cobalt-input rounded-xl p-3 space-y-1">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold text-zinc-100">${escapeHtml(item.title)}</span>
-            <span class="mono text-[11px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">Nilai ${item.score}</span>
-          </div>
-          <p class="text-[11px] text-zinc-400">✓ ${escapeHtml(item.confirmation)}</p>
-          <div class="flex items-center justify-between pt-1 text-[10px] text-zinc-500 mono">
-            <span>${item.date}</span>
-            <div class="flex gap-2">
-              ${item.editUrl ? `<a href="${item.editUrl}" target="_blank" class="text-amber-400 hover:underline">✏️ Edit Jawaban</a>` : ''}
-              <a href="${item.url}" target="_blank" class="text-zinc-300 hover:underline">🔗 Buka Form</a>
-            </div>
-          </div>
-        </div>
-      `).join('');
+      container.innerHTML = list.map(function (item) {
+        return (
+          '<div class="cobalt-field" style="display:flex; flex-direction:column; gap:4px;">' +
+            '<div style="display:flex; justify-content:space-between; align-items:center;">' +
+              '<strong style="font-size:12.5px;">' + escapeHtml(item.title) + '</strong>' +
+              '<span class="badge green mono">Nilai ' + item.score + '</span>' +
+            '</div>' +
+            '<div style="font-size:11.5px; color:var(--text-muted);">✓ ' + escapeHtml(item.confirmation) + '</div>' +
+            '<div class="mono" style="display:flex; justify-content:space-between; font-size:10.5px; color:var(--text-dim); margin-top:4px;">' +
+              '<span>' + item.date + '</span>' +
+              '<a href="' + item.url + '" target="_blank" style="color:#fff;">🔗 Buka Form</a>' +
+            '</div>' +
+          '</div>'
+        );
+      }).join('');
     }
 
     function clearHistory() {
@@ -1219,8 +1628,8 @@
       showToast('Riwayat dihapus.', '🗑️');
     }
 
-    function escapeHtml(str = '') {
-      return String(str)
+    function escapeHtml(str) {
+      return String(str || '')
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
