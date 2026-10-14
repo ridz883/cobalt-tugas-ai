@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>cobalt.tugas — AI Form & Exam Auto-Solver</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+  <link rel="preconnect" href="[https://fonts.googleapis.com](https://fonts.googleapis.com)">
+  <link rel="preconnect" href="[https://fonts.gstatic.com](https://fonts.gstatic.com)" crossorigin>
+  <link href="[https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap](https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap)" rel="stylesheet">
   <style>
     :root {
       --bg-main: #070708;
@@ -57,7 +57,6 @@
       border-color: #f4f4f5;
       font-weight: 600;
     }
-    /* Custom Scrollbar */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: #070708; }
     ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 3px; }
@@ -135,7 +134,7 @@
         </button>
       </div>
 
-      <!-- COBALT PILL CONTROLS (SCORE, ESSAY STYLE, TIMER, AI MODEL) -->
+      <!-- COBALT PILL CONTROLS (SCORE, ESSAY STYLE, TIMER, EXTRA CONTEXT) -->
       <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
         <!-- Target Nilai Group -->
         <div class="cobalt-card rounded-xl p-1 flex items-center gap-1">
@@ -390,7 +389,7 @@
         <div>
           <label class="text-[11px] text-zinc-300 font-medium">Opsi 1: Tempel Kode HTML (view-source) Form Private</label>
           <p class="text-[11px] text-zinc-500 mb-1">
-            Jika form mewajibkan login email sekolah di HP, buka `view-source:https://docs.google.com/...` di Chrome, salin semua isinya, lalu tempel di bawah ini:
+            Jika form mewajibkan login email sekolah di HP, buka `view-source:[https://docs.google.com/](https://docs.google.com/)...` di Chrome, salin semua isinya, lalu tempel di bawah ini:
           </p>
           <textarea id="rawHtmlInput" rows="3" placeholder="Tempel kode HTML halaman form di sini..." class="w-full cobalt-input rounded-xl p-2.5 text-xs mono"></textarea>
           <button onclick="handleScanFromRawHtml()" class="mt-1.5 cobalt-pill px-3 py-1.5 rounded-xl text-xs text-emerald-400">
@@ -453,21 +452,18 @@
   <!-- FRONTEND LOGIC & STATE MANAGEMENT -->
   <!-- ======================================================================= -->
   <script>
-    // State Global Aplikasi
-    let currentForm = null;          // Data hasil scan form
-    let solvedState = {};            // { [entryId]: { correctAnswer, selectedAnswer, isIntentionallyWrong, reason } }
-    let targetScore = 100;           // 80, 90, atau 100
-    let currentFilter = 'all';       // 'all' | 'correct' | 'wrong'
+    let currentForm = null;
+    let solvedState = {};
+    let targetScore = 100;
+    let currentFilter = 'all';
     let stealthInterval = null;
 
-    // Inisialisasi saat halaman dimuat
     window.addEventListener('DOMContentLoaded', () => {
       loadProfilePreset();
       loadAdvancedSettings();
       renderHistoryList();
     });
 
-    // Efek Suara Klik Halus ala Cobalt (Web Audio API)
     function playClickSound(freq = 520) {
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -490,13 +486,14 @@
       document.getElementById('toastMessage').textContent = msg;
       box.classList.remove('hidden');
       clearTimeout(window._toastTimer);
-      window._toastTimer = setTimeout(() => box.classList.add('hidden'), 3800);
+      window._toastTimer = setTimeout(() => box.classList.add('hidden'), 4000);
     }
 
     function openModal(id) {
       playClickSound(600);
       document.getElementById(id).classList.remove('hidden');
     }
+
     function closeModal(id) {
       document.getElementById(id).classList.add('hidden');
     }
@@ -516,11 +513,10 @@
           handleScanForm();
         }
       } catch (e) {
-        showToast('Izinkan akses clipboard atau tempel manual (Ctrl+V)', '⚠️');
+        showToast('Izinkan akses clipboard atau tempel manual', '⚠️');
       }
     }
 
-    // Pengaturan Target Nilai (80, 90, 100)
     function setTargetScore(score) {
       playClickSound(score === 100 ? 700 : 500);
       targetScore = score;
@@ -530,12 +526,36 @@
         else el.classList.remove('active');
       });
 
-      // Jika soal sudah dijawab AI, langsung hitung ulang mutasi skor secara instan!
       if (currentForm && Object.keys(solvedState).length > 0) {
         recalculateScoreMutations();
         renderQuestionsList();
         showToast(`Target nilai diatur ke ${score}!`, '🎯');
       }
+    }
+
+    /**
+     * Helper Pemanggil API Serverless Vercel (Anti Error Unexpected token 'T')
+     */
+    async function callBackendApi(action, payloadData = {}) {
+      const res = await fetch('/api', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, ...payloadData })
+      });
+
+      const rawText = await res.text();
+      let json;
+      try {
+        json = JSON.parse(rawText);
+      } catch (e) {
+        throw new Error(`Endpoint /api tidak ditemukan (HTTP ${res.status}). Pastikan file index.js berada di dalam folder api/ di GitHub.`);
+      }
+
+      if (!json.success) {
+        throw new Error(json.error || 'Terjadi kesalahan pada server.');
+      }
+
+      return json;
     }
 
     // =========================================================================
@@ -557,19 +577,15 @@
 
       try {
         const cookie = localStorage.getItem('cobalt_cookie') || '';
-        const res = await fetch('/api/scan', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url, rawHtml: rawHtmlOverride, cookie })
+        const json = await callBackendApi('scan', {
+          url,
+          rawHtml: rawHtmlOverride,
+          cookie
         });
-
-        const json = await res.json();
-        if (!json.success) throw new Error(json.error);
 
         currentForm = json.data;
         solvedState = {};
 
-        // Tampilkan Workspace
         document.getElementById('workspaceContainer').classList.remove('hidden');
         document.getElementById('scoreSummaryBar').classList.add('hidden');
         document.getElementById('formTitleDisplay').textContent = currentForm.formTitle;
@@ -603,7 +619,6 @@
       handleScanForm(raw);
     }
 
-    // Render Kolom Identitas (Nama, Kelas, Absen, NISN)
     function renderIdentityFields() {
       const container = document.getElementById('identityFieldsContainer');
       container.innerHTML = '';
@@ -620,7 +635,6 @@
         const wrapper = document.createElement('div');
 
         if (field.options && field.options.length > 0) {
-          // Jika Kelas berupa Dropdown / Radio di Form aslinya
           let optionsHtml = field.options.map(opt => {
             const isSelected = defaultVal && opt.toLowerCase().includes(defaultVal.toLowerCase()) ? 'selected' : '';
             return `<option value="${escapeHtml(opt)}" class="bg-zinc-900" ${isSelected}>${escapeHtml(opt)}</option>`;
@@ -671,22 +685,14 @@
         const aiModel = localStorage.getItem('cobalt_ai_model') || 'mistralai/mistral-large-4-0';
         const customApiKey = localStorage.getItem('cobalt_api_key') || '';
 
-        const res = await fetch('/api/solve', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            questions: currentForm.quizQuestions,
-            essayStyle,
-            extraContext,
-            aiModel,
-            customApiKey
-          })
+        const json = await callBackendApi('solve', {
+          questions: currentForm.quizQuestions,
+          essayStyle,
+          extraContext,
+          aiModel,
+          customApiKey
         });
 
-        const json = await res.json();
-        if (!json.success) throw new Error(json.error);
-
-        // Simpan jawaban 100% benar dari AI
         solvedState = {};
         for (const q of currentForm.quizQuestions) {
           const item = json.solved[q.entryId] || { correctAnswer: q.options?.[0] || '-', reason: '' };
@@ -698,7 +704,6 @@
           };
         }
 
-        // Terapkan mutasi skor sesuai pilihan 80 / 90 / 100
         recalculateScoreMutations();
         document.getElementById('scoreSummaryBar').classList.remove('hidden');
         renderQuestionsList();
@@ -714,13 +719,11 @@
       }
     }
 
-    // Logika Mutasi Skor (Mengatur soal yang benar & sengaja disalahkan)
     function recalculateScoreMutations() {
       if (!currentForm) return;
       const questions = currentForm.quizQuestions;
       const total = questions.length;
 
-      // Reset semua ke jawaban benar terlebih dahulu
       questions.forEach(q => {
         if (solvedState[q.entryId]) {
           solvedState[q.entryId].selectedAnswer = solvedState[q.entryId].correctAnswer;
@@ -732,7 +735,6 @@
       let wrongNeeded = Math.max(0, total - targetCorrectCount);
 
       if (wrongNeeded > 0) {
-        // Prioritaskan menyalahkan soal Pilihan Ganda yang punya >= 2 opsi
         const mcCandidates = questions.filter(q => q.options && q.options.length > 1);
         const shuffled = [...mcCandidates].sort(() => 0.5 - Math.random());
 
@@ -768,17 +770,14 @@
           : `${correctCount} soal dijawab BENAR, dan ${wrongCount} soal pilihan ganda sengaja DISALAHKAN agar nilai pas ${targetScore}.`;
     }
 
-    // Fitur "Tukar Jatah Salah" (Memindahkan status salah dari nomor ini ke soal lain)
     function swapWrongQuestion(entryId) {
       playClickSound(580);
       const currentSt = solvedState[entryId];
       if (!currentSt || !currentSt.isIntentionallyWrong) return;
 
-      // Kembalikan soal ini menjadi benar
       currentSt.selectedAnswer = currentSt.correctAnswer;
       currentSt.isIntentionallyWrong = false;
 
-      // Cari soal PG lain yang saat ini masih benar untuk disalahkan sebagai gantinya
       const otherCandidates = currentForm.quizQuestions.filter(
         q => q.entryId !== entryId && q.options && q.options.length > 1 && !solvedState[q.entryId]?.isIntentionallyWrong
       );
@@ -790,7 +789,7 @@
         if (wrongOpts.length > 0) {
           pickSt.selectedAnswer = wrongOpts[0];
           pickSt.isIntentionallyWrong = true;
-          showToast(`Jatah salah dipindahkan ke soal lain!`, '🔄');
+          showToast('Jatah salah dipindahkan ke soal nomor lain!', '🔄');
         }
       }
 
@@ -809,7 +808,6 @@
       renderQuestionsList();
     }
 
-    // Render Daftar Kartu Soal & Live Override
     function renderQuestionsList() {
       const container = document.getElementById('questionsListContainer');
       container.innerHTML = '';
@@ -833,7 +831,6 @@
             : ''
         }`;
 
-        // Header Kartu Soal
         let statusBadge = `<span class="mono text-[11px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">Belum Dijawab</span>`;
         if (isSolved) {
           statusBadge = isWrong
@@ -844,14 +841,12 @@
             : `<span class="mono text-[11px] px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">🟢 Dijawab Benar</span>`;
         }
 
-        // Pratinjau Gambar jika Soal Bergambar (Vision)
         const imageHtml = q.imageUrl
           ? `<div class="my-2.5">
                <img src="${q.imageUrl}" alt="Gambar Soal" class="max-h-48 rounded-xl border border-zinc-800 object-contain bg-black p-1" />
              </div>`
           : '';
 
-        // Pilihan Ganda atau Input Esai
         let bodyHtml = '';
         if (q.options && q.options.length > 0) {
           const optsHtml = q.options.map((opt, optIdx) => {
@@ -868,7 +863,7 @@
 
             return `
               <div
-                onclick="manualSelectOption('${q.entryId}', ${ idx }, ${ optIdx })"
+                onclick="manualSelectOption('${q.entryId}', ${idx}, ${optIdx})"
                 class="cursor-pointer rounded-xl p-2.5 border text-xs flex items-center justify-between gap-2 transition ${optionStyle}"
               >
                 <div class="flex items-center gap-2.5">
@@ -916,7 +911,6 @@
       });
     }
 
-    // Override Manual Saat User Mengeklik Opsi Pilihan Ganda
     function manualSelectOption(entryId, qIdx, optIdx) {
       playClickSound();
       const q = currentForm.quizQuestions[qIdx];
@@ -944,17 +938,14 @@
       }
     }
 
-    // Kumpulkan Semua Payload (Identitas + Jawaban Soal)
     function collectFinalPayload() {
       const payload = {};
 
-      // 1. Ambil nilai dari input identitas
       document.querySelectorAll('[data-identity-entry]').forEach(el => {
         const entryId = el.getAttribute('data-identity-entry');
         payload[entryId] = el.value.trim();
       });
 
-      // 2. Ambil jawaban soal
       if (currentForm) {
         currentForm.quizQuestions.forEach(q => {
           const st = solvedState[q.entryId];
@@ -968,7 +959,7 @@
     }
 
     // =========================================================================
-    // TAHAP 3: TRIPLE EXECUTION MODE (DIRECT SUBMIT, MAGIC LINK, CHROME SCRIPT)
+    // TAHAP 3: TRIPLE EXECUTION MODE
     // =========================================================================
     function handleStartSubmit() {
       if (!currentForm) return;
@@ -991,7 +982,7 @@
       clearInterval(stealthInterval);
       const updateDisplay = () => {
         const m = String(Math.floor(remaining / 60)).padStart(2, '0');
-        const s = String(remaining % 60).padStart(2, '0');
+        const s = String(remaining % 60)).padStart(2, '0');
         timerText.textContent = `${m}:${s}`;
       };
       updateDisplay();
@@ -1013,7 +1004,6 @@
       showToast('Timer pengiriman dibatalkan.', '⏹️');
     }
 
-    // Mode 1: Direct Auto-Submit via Serverless Backend
     async function executeDirectSubmit(fromTimer = false) {
       if (fromTimer) cancelStealthTimer();
       playClickSound(750);
@@ -1025,23 +1015,16 @@
 
       try {
         const cookie = localStorage.getItem('cobalt_cookie') || '';
-        const res = await fetch('/api/submit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            platform: currentForm.platform,
-            submitUrl: currentForm.submitUrl,
-            viewUrl: currentForm.viewUrl,
-            method: currentForm.method || 'POST',
-            pageCount: currentForm.pageCount,
-            fbzx: currentForm.fbzx,
-            cookie,
-            payload
-          })
+        const json = await callBackendApi('submit', {
+          platform: currentForm.platform,
+          submitUrl: currentForm.submitUrl,
+          viewUrl: currentForm.viewUrl,
+          method: currentForm.method || 'POST',
+          pageCount: currentForm.pageCount,
+          fbzx: currentForm.fbzx,
+          cookie,
+          payload
         });
-
-        const json = await res.json();
-        if (!json.success) throw new Error(json.error);
 
         saveToHistory({
           title: currentForm.formTitle,
@@ -1062,7 +1045,6 @@
       }
     }
 
-    // Mode 2: Buka Magic Link Auto-Centang (?usp=pp_url)
     function openMagicLink() {
       if (!currentForm) return;
       playClickSound(680);
@@ -1084,7 +1066,6 @@
       showToast('Magic Link dibuka di tab baru! Semua jawaban sudah tercentang.', '🔗');
     }
 
-    // Mode 3: Copy Chrome Console Auto-Filler Script (Untuk Web CBT / Non-GForm)
     function copyChromeAutoFillScript() {
       if (!currentForm) return;
       playClickSound();
@@ -1105,7 +1086,6 @@
         filled++;
       }
     });
-    // Klik elemen teks opsi yang cocok di layar
     document.querySelectorAll('[role="radio"], [role="checkbox"], label').forEach(el => {
       if ((el.getAttribute('data-value') === val || el.innerText.trim() === val)) {
         el.click(); filled++;
@@ -1119,7 +1099,6 @@
       showToast('Script Auto-Fill Chrome disalin! Tempel di Console/Bookmark Chrome.', '🧩');
     }
 
-    // Salin Kunci Jawaban ke Format WhatsApp
     function copyWhatsAppKey() {
       if (!currentForm) return;
       playClickSound();
